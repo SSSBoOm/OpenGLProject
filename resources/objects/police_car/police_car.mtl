@@ -1,0 +1,83 @@
+# Blender 4.5.4 LTS Release Candidate MTL File: 'police_car.blend'
+# www.blender.org
+
+newmtl Carbadges_misc_U.001
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+map_Kd Carbadges_misc_U_dif.png
+map_d Carbadges_misc_U_dif.png
+
+newmtl Numberplates_Misk_U.001
+Ns 10.717731
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd Numberplates_Misk_U_Dif.png
+
+newmtl RB1c_Tire_1k.001
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd RB1c_Tire_1k_Dif.jpg
+map_Ns RB1c_Tire_1k_Rough.jpg
+map_refl RB1c_Tire_1k_Height.jpg
+
+newmtl UCB_BOTTOM.001
+Ns 74.642616
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd UCB_Interiors_2_Dif.jpg
+
+newmtl UCB_Interiors_2
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd UCB_Interiors_2_Dif.jpg
+
+newmtl UCB_Lights_and_Glass.001
+Ns 735.166870
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd UCB_Lights_and_Glass_Dif.jpg
+
+newmtl UCB_Lights_and_Glass_Transperent.001
+Ns 735.166870
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd UCB_Lights_and_Glass_Dif.jpg
+
+newmtl thunderbolt96_body
+Ns 1000.000000
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd thunderbolt96_Cop_Body_Dif.jpg

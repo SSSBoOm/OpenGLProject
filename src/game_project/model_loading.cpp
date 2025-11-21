@@ -83,7 +83,7 @@ int main()
   // load models
   // -----------
   stbi_set_flip_vertically_on_load(false);
-  Model ourModel(FileSystem::getPath("resources/objects/e30/e30.obj"));
+  Model ourModel(FileSystem::getPath("resources/objects/police_car/police_car.obj"));
   // draw in wireframe
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
