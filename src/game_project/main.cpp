@@ -5,6 +5,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <vector>
+#include <string>
+#include <iostream>
+
 #include <learnopengl/filesystem.h>
 #include <learnopengl/shader_m.h>
 #include <learnopengl/camera.h>
@@ -64,8 +68,103 @@ int main()
   Shader ourShader("1.model_loading.vs", "1.model_loading.fs");
   stbi_set_flip_vertically_on_load(false);
 
-  Model ourModel(FileSystem::getPath("resources/objects/police_car/police_car.obj"));
+  // Available model paths (relative to project root via FileSystem)
+  std::vector<std::string> modelPaths = {
+      FileSystem::getPath("resources/objects/police_car/police_car.obj"),
+      FileSystem::getPath("resources/objects/e30/e30.obj"),
+      FileSystem::getPath("resources/objects/pickup/pickup.obj"),
+  };
 
+  // Load all models for the menu (keeps them in memory for quick switching)
+  std::vector<Model> models;
+  models.reserve(modelPaths.size());
+  for (const auto &p : modelPaths)
+  {
+    models.emplace_back(p);
+  }
+
+  // Menu selection index
+  int selectedIndex = 0;
+  bool inMenu = true;
+  double lastKeyTime = 0.0;
+  const double keyDelay = 0.18; // seconds between selection changes
+
+  // First: simple menu loop for selecting model
+  while (inMenu && !glfwWindowShouldClose(window))
+  {
+    float currentFrame = static_cast<float>(glfwGetTime());
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
+    Input::handleEscape(window);
+    // Poll driving inputs only when in-game; for menu we'll just check keys directly
+    Input::poll(window, controls);
+
+    // Simple key debounce based on glfw time
+    double t = glfwGetTime();
+    if (t - lastKeyTime > keyDelay)
+    {
+      if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+      {
+        selectedIndex = (selectedIndex + 1) % static_cast<int>(models.size());
+        lastKeyTime = t;
+        std::string title = std::string("Select Model - ") + modelPaths[selectedIndex];
+        glfwSetWindowTitle(window, title.c_str());
+      }
+      if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+      {
+        selectedIndex = (selectedIndex - 1 + static_cast<int>(models.size())) % static_cast<int>(models.size());
+        lastKeyTime = t;
+        std::string title = std::string("Select Model - ") + modelPaths[selectedIndex];
+        glfwSetWindowTitle(window, title.c_str());
+      }
+      if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+      {
+        inMenu = false; // start the game
+        lastKeyTime = t;
+        break;
+      }
+    }
+
+    // Render the currently selected model in the center with a slow orbit/dolly
+    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    ourShader.use();
+    float aspect = (float)SCR_WIDTH / (float)SCR_HEIGHT;
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
+
+    // Orbit camera around origin (where the model will be placed)
+    float orbitSpeed = 0.5f; // angular speed multiplier
+    float angle = static_cast<float>(glfwGetTime()) * orbitSpeed;
+    float radius = 5.0f;
+    glm::vec3 camPos = glm::vec3(sin(angle) * radius, 1.2f, cos(angle) * radius);
+    glm::mat4 view = glm::lookAt(camPos, glm::vec3(0.0f, 0.6f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    ourShader.setMat4("projection", projection);
+    ourShader.setMat4("view", view);
+
+    // Place and scale model so it fits in view
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(0.8f));
+    // slow model rotation for a pleasing effect as well
+    model = glm::rotate(model, -angle * 0.8f, glm::vec3(0.0f, 1.0f, 0.0f));
+    ourShader.setMat4("model", model);
+
+    models[selectedIndex].Draw(ourShader);
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+  }
+
+  // If user closed window in menu, exit
+  if (glfwWindowShouldClose(window))
+  {
+    glfwTerminate();
+    return 0;
+  }
+
+  // Main game loop: use chosen model
   while (!glfwWindowShouldClose(window))
   {
     float currentFrame = static_cast<float>(glfwGetTime());
@@ -82,14 +181,14 @@ int main()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ourShader.use();
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 view = camera.GetViewMatrix();
-    ourShader.setMat4("projection", projection);
-    ourShader.setMat4("view", view);
-    glm::mat4 model = car.getModelMatrix();
-    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-    ourShader.setMat4("model", model);
-    ourModel.Draw(ourShader);
+    glm::mat4 projection2 = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 view2 = camera.GetViewMatrix();
+    ourShader.setMat4("projection", projection2);
+    ourShader.setMat4("view", view2);
+    glm::mat4 model2 = car.getModelMatrix();
+    model2 = glm::scale(model2, glm::vec3(1.0f, 1.0f, 1.0f));
+    ourShader.setMat4("model", model2);
+    models[selectedIndex].Draw(ourShader);
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
