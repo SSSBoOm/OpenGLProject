@@ -13,13 +13,11 @@
 #include <learnopengl/shader_m.h>
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
+
 #include "core/car.h"
 #include "core/controls.h"
-#include "physics/physics.h"
-
-#include <iostream>
-
 #include "core/callbacks.h"
+#include "physics/physics.h"
 #include "input/input.h"
 #include "scene/scene.h"
 
