@@ -127,15 +127,79 @@ int main()
   }
   stbi_image_free(data);
 
+  // Load background texture for menu
+  unsigned int backgroundTexture;
+  glGenTextures(1, &backgroundTexture);
+  glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  std::string bgPath = FileSystem::getPath("resources/images/WhiteCloud.jpg");
+  int bgWidth, bgHeight, bgChannels;
+  stbi_set_flip_vertically_on_load(false);
+  unsigned char *bgData = stbi_load(bgPath.c_str(), &bgWidth, &bgHeight, &bgChannels, 0);
+  if (bgData)
+  {
+    GLenum bgFormat = (bgChannels == 4) ? GL_RGBA : GL_RGB;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bgWidth, bgHeight, 0, bgFormat, GL_UNSIGNED_BYTE, bgData);
+    stbi_image_free(bgData);
+  }
+  stbi_set_flip_vertically_on_load(true);
+
+  // Background quad for menu
+  float bgQuadVertices[] = {
+      // positions        // texcoords
+      -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+      1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+      1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+      -1.0f, 1.0f, 0.0f, 0.0f, 1.0f};
+
+  unsigned int bgQuadIndices[] = {0, 1, 2, 0, 2, 3};
+
+  unsigned int bgVAO, bgVBO, bgEBO;
+  glGenVertexArrays(1, &bgVAO);
+  glGenBuffers(1, &bgVBO);
+  glGenBuffers(1, &bgEBO);
+
+  glBindVertexArray(bgVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, bgVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(bgQuadVertices), bgQuadVertices, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bgEBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(bgQuadIndices), bgQuadIndices, GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+
+  glBindVertexArray(0);
+
   // Available model paths (relative to project root via FileSystem)
-  std::vector<std::string> modelPaths = {
-      FileSystem::getPath("resources/objects/police_car/police_car.obj"),
-      FileSystem::getPath("resources/objects/e30/e30.obj"),
-      FileSystem::getPath("resources/objects/pickup/pickup.obj"),
+  struct ModelInfo
+  {
+    std::string path;
+    std::string label;
   };
+
+  std::vector<ModelInfo> modelInfos = {
+      {FileSystem::getPath("resources/objects/police_car/police_car.obj"), "Police Car"},
+      {FileSystem::getPath("resources/objects/e30/e30.obj"), "BMW E30"},
+      {FileSystem::getPath("resources/objects/pickup/pickup.obj"), "Pickup Truck"},
+  };
+
+  std::vector<std::string> modelPaths;
+  modelPaths.reserve(modelInfos.size());
+  for (const auto &info : modelInfos)
+  {
+    modelPaths.push_back(info.path);
+  }
 
   // Load all models for the menu (keeps them in memory for quick switching)
   std::vector<Model> models;
+  stbi_set_flip_vertically_on_load(false);
   models.reserve(modelPaths.size());
   for (const auto &p : modelPaths)
   {
@@ -167,14 +231,14 @@ int main()
       {
         selectedIndex = (selectedIndex + 1) % static_cast<int>(models.size());
         lastKeyTime = t;
-        std::string title = std::string("Select Model - ") + modelPaths[selectedIndex];
+        std::string title = std::string("Select Model - ") + modelInfos[selectedIndex].label;
         glfwSetWindowTitle(window, title.c_str());
       }
       if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
       {
         selectedIndex = (selectedIndex - 1 + static_cast<int>(models.size())) % static_cast<int>(models.size());
         lastKeyTime = t;
-        std::string title = std::string("Select Model - ") + modelPaths[selectedIndex];
+        std::string title = std::string("Select Model - ") + modelInfos[selectedIndex].label;
         glfwSetWindowTitle(window, title.c_str());
       }
       if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
@@ -188,6 +252,19 @@ int main()
     // Render the currently selected model in the center with a slow orbit/dolly
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Draw background image as fullscreen quad
+    glDisable(GL_DEPTH_TEST);
+    ourShader.use();
+    ourShader.setMat4("model", glm::mat4(1.0f));
+    ourShader.setMat4("view", glm::mat4(1.0f));
+    ourShader.setMat4("projection", glm::mat4(1.0f));
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+    glBindVertexArray(bgVAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+    glEnable(GL_DEPTH_TEST);
 
     ourShader.use();
     float aspect = (float)SCR_WIDTH / (float)SCR_HEIGHT;
@@ -277,6 +354,10 @@ int main()
   glDeleteBuffers(1, &groundVBO);
   glDeleteBuffers(1, &groundEBO);
   glDeleteTextures(1, &groundTexture);
+  glDeleteVertexArrays(1, &bgVAO);
+  glDeleteBuffers(1, &bgVBO);
+  glDeleteBuffers(1, &bgEBO);
+  glDeleteTextures(1, &backgroundTexture);
   glfwTerminate();
   return 0;
 }
