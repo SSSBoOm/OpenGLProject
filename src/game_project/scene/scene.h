@@ -1,0 +1,47 @@
+#pragma once
+
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <vector>
+#include <string>
+
+#include <learnopengl/shader_m.h>
+#include <learnopengl/model.h>
+
+#include "../core/controls.h"
+#include "../core/car.h"
+#include <learnopengl/camera.h>
+
+struct ModelInfo
+{
+  std::string path;
+  std::string label;
+};
+
+class Scene {
+public:
+  Scene();
+  ~Scene();
+
+  bool init(int scrWidth, int scrHeight);
+
+  bool showMenu(GLFWwindow *window, Shader &shader, Controls &controls, int &selectedIndex, int scrWidth, int scrHeight);
+
+  void renderScene(Shader &shader, Camera &camera, Car &car, int selectedIndex, int scrWidth, int scrHeight);
+
+  void cleanup();
+
+private:
+  unsigned int groundVAO = 0;
+  unsigned int groundVBO = 0;
+  unsigned int groundEBO = 0;
+  unsigned int groundTexture = 0;
+  unsigned int backgroundTexture = 0;
+  unsigned int bgVAO = 0; 
+  unsigned int bgVBO = 0; 
+  unsigned int bgEBO = 0;
+
+  std::vector<ModelInfo> modelInfos;
+  std::vector<std::string> modelPaths;
+  std::vector<Model> models;
+};
