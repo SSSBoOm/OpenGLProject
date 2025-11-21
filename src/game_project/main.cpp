@@ -9,14 +9,14 @@
 #include <learnopengl/shader_m.h>
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
-#include "car.h"
-#include "controls.h"
-#include "physics.h"
+#include "core/car.h"
+#include "core/controls.h"
+#include "physics/physics.h"
 
 #include <iostream>
 
-#include "callbacks.h"
-#include "input.h"
+#include "core/callbacks.h"
+#include "input/input.h"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;

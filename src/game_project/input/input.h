@@ -2,7 +2,7 @@
 #define GAME_PROJECT_INPUT_H
 
 #include <GLFW/glfw3.h>
-#include "controls.h"
+#include "../core/controls.h"
 
 namespace Input {
   // Poll keyboard and populate Controls struct

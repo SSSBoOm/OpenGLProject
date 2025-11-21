@@ -62,16 +62,16 @@ macro(makeLink src dest target)
 endmacro()
 
 function(create_project_from_sources chapter)
-	file(GLOB SOURCE
-            "src/${chapter}/*.h"
-            "src/${chapter}/*.cpp"
-            "src/${chapter}/*.vs"
-            "src/${chapter}/*.fs"
-            "src/${chapter}/*.tcs"
-            "src/${chapter}/*.tes"
-            "src/${chapter}/*.gs"
-            "src/${chapter}/*.cs"
-    )
+      file(GLOB_RECURSE SOURCE
+        "src/${chapter}/*.h"
+        "src/${chapter}/*.cpp"
+        "src/${chapter}/*.vs"
+        "src/${chapter}/*.fs"
+        "src/${chapter}/*.tcs"
+        "src/${chapter}/*.tes"
+        "src/${chapter}/*.gs"
+        "src/${chapter}/*.cs"
+      )
 	set(NAME "${chapter}")
   add_executable(${NAME} ${SOURCE})
   target_link_libraries(${NAME} ${LIBS})
@@ -86,10 +86,6 @@ function(create_project_from_sources chapter)
   file(GLOB SHADERS
             "src/${chapter}/*.vs"
             "src/${chapter}/*.fs"
-            "src/${chapter}/*.tcs"
-            "src/${chapter}/*.tes"
-            "src/${chapter}/*.gs"
-            "src/${chapter}/*.cs"
   )
 # copy dlls
 file(GLOB DLLS "dlls/*.dll")
