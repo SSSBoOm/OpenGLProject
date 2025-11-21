@@ -1,7 +1,7 @@
 # Blender 4.5.4 LTS Release Candidate MTL File: 'None'
 # www.blender.org
 
-newmtl Carbadges_misc_U
+newmtl Carbadges_misc_U.002
 Ns 20.000006
 Ka 1.000000 1.000000 1.000000
 Ks 0.000000 0.000000 0.000000
@@ -12,7 +12,7 @@ map_Kd Carbadges_misc_U_dif.png
 map_d Carbadges_misc_U_dif.png
 map_Bump -bm 0.200000 Carbadges_misc_U_height.jpg
 
-newmtl DOUTRIVE78_bodymat
+newmtl DOUTRIVE78_bodymat.001
 Ns 149.285278
 Ka 1.000000 1.000000 1.000000
 Ks 0.800000 0.800000 0.800000
@@ -22,7 +22,7 @@ illum 2
 map_Kd Generic_bodymat_dif.jpg
 map_d Generic_bodymat_dif.jpg
 
-newmtl Numberplates_Misk_U
+newmtl Numberplates_Misk_U.002
 Ns 20.000006
 Ka 1.000000 1.000000 1.000000
 Ks 0.000000 0.000000 0.000000
@@ -33,7 +33,7 @@ map_Kd Numberplates_Misk_U_Dif.png
 map_d Numberplates_Misk_U_Dif.png
 map_Bump -bm 0.200000 Numberplates_Misk_U_Height.png
 
-newmtl RB1c_Tire_1k
+newmtl RB1c_Tire_1k.002
 Ka 1.000000 1.000000 1.000000
 Ks 1.000000 1.000000 1.000000
 Ke 0.000000 0.000000 0.000000
@@ -44,7 +44,7 @@ map_Kd RB1c_Tire_1k_Dif.jpg
 map_Ns RB1c_Tire_1k_Rough.jpg
 map_refl RB1c_Tire_1k_Met.jpg
 
-newmtl UCB_BOTTOM
+newmtl UCB_BOTTOM.002
 Ka 1.000000 1.000000 1.000000
 Ks 1.000000 1.000000 1.000000
 Ke 0.000000 0.000000 0.000000
@@ -55,7 +55,7 @@ map_Kd UCB_BOTTOM_DIF.jpg
 map_Ns UCB_BOTTOM_rough.jpg
 map_refl UCB_BOTTOM_met.jpg
 
-newmtl UCB_Interiors_1
+newmtl UCB_Interiors_1.001
 Ns 298.570618
 Ka 1.000000 1.000000 1.000000
 Ke 0.000000 0.000000 0.000000
@@ -66,7 +66,7 @@ map_Kd UCB_Interiors_1_Dif.jpg
 map_Ks UCB_Interiors_1_Height.jpg
 map_Bump -bm 0.200000 UCB_Interiors_1_Height.jpg
 
-newmtl UCB_Lights_and_Glass
+newmtl UCB_Lights_and_Glass.002
 Ns 278.576111
 Ka 1.000000 1.000000 1.000000
 Ks 0.620000 0.620000 0.620000
@@ -76,7 +76,7 @@ d 1.000000
 illum 2
 map_Kd UCB_Lights_and_Glass_Dif.jpg
 
-newmtl UCB_Lights_and_Glass_Transperent
+newmtl UCB_Lights_and_Glass_Transperent.002
 Ns 278.576111
 Ka 1.000000 1.000000 1.000000
 Ks 0.620000 0.620000 0.620000
