@@ -1,13 +1,13 @@
 cmake_minimum_required (VERSION 3.0)
 cmake_policy(VERSION 3.0)
 
-project(game_project)
+project(Template)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
-  CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  add_definitions(/std:c++17)
+    add_definitions(/std:c++17)
 endif()
 
 set(CMAKE_CXX_EXTENSIONS ON)
@@ -40,35 +40,69 @@ SET(APPLE_LIBS ${COCOA_LIBRARY} ${IOKit_LIBRARY} ${OpenGL_LIBRARY} ${CoreVideo_L
 SET(APPLE_LIBS ${APPLE_LIBS} ${GLFW3_LIBRARY} ${ASSIMP_LIBRARY} ${FREETYPE_LIBRARIES})
 set(LIBS ${LIBS} ${APPLE_LIBS})
 
+# Set Project to build
+set(PROJECTS
+  game_project
+)
+
 configure_file(configuration/root_directory.h.in configuration/root_directory.h)
 include_directories(${CMAKE_BINARY_DIR}/configuration)
-include_directories(${CMAKE_SOURCE_DIR}/includes)
 
 add_library(STB_IMAGE "src/stb_image.cpp")
 set(LIBS ${LIBS} STB_IMAGE)
 
+
 add_library(GLAD "src/glad.c")
 set(LIBS ${LIBS} GLAD)
 
-# Collect all source files from src directory
-file(GLOB_RECURSE SOURCE
-  "src/*.h"
-  "src/*.cpp"
-)
+macro(makeLink src dest target)
+  add_custom_command(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND} -E create_symlink ${src} ${dest}  DEPENDS  ${dest} COMMENT "mklink ${src} -> ${dest}")
+endmacro()
 
-# Exclude stb_image.cpp and glad.c as they're already compiled as libraries
-list(FILTER SOURCE EXCLUDE REGEX "src/stb_image.cpp|src/glad.c")
+function(create_project_from_sources chapter)
+	file(GLOB SOURCE
+            "src/${chapter}/*.h"
+            "src/${chapter}/*.cpp"
+            "src/${chapter}/*.vs"
+            "src/${chapter}/*.fs"
+            "src/${chapter}/*.tcs"
+            "src/${chapter}/*.tes"
+            "src/${chapter}/*.gs"
+            "src/${chapter}/*.cs"
+    )
+	set(NAME "${chapter}")
+  add_executable(${NAME} ${SOURCE})
+  target_link_libraries(${NAME} ${LIBS})
+  if(MSVC)
+  target_compile_options(${NAME} PRIVATE /std:c++17 /MP)
+      target_link_options(${NAME} PUBLIC /ignore:4099)
+  endif(MSVC)
+  set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${chapter}")
+  set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/${chapter}")
+  set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/${chapter}")
+  # copy shader files to build directory
+  file(GLOB SHADERS
+            "src/${chapter}/*.vs"
+            "src/${chapter}/*.fs"
+            "src/${chapter}/*.tcs"
+            "src/${chapter}/*.tes"
+            "src/${chapter}/*.gs"
+            "src/${chapter}/*.cs"
+  )
+# copy dlls
+file(GLOB DLLS "dlls/*.dll")
+  foreach(SHADER ${SHADERS})
+    get_filename_component(SHADERNAME ${SHADER} NAME)
+    makeLink(${SHADER} ${CMAKE_SOURCE_DIR}/bin/${chapter}/${SHADERNAME} ${NAME})
+  endforeach(SHADER)
+  if(MSVC)
+      configure_file(${CMAKE_SOURCE_DIR}/configuration/visualstudio.vcxproj.user.in ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.vcxproj.user @ONLY)
+  endif(MSVC)
+endfunction()
 
-# Create single executable
-add_executable(${PROJECT_NAME} ${SOURCE})
-target_link_libraries(${PROJECT_NAME} ${LIBS})
+# then create a project file per tutorial
+foreach(PROJECTS ${PROJECTS})
+  create_project_from_sources(${PROJECTS})
+endforeach(PROJECTS)
 
-if(MSVC)
-  target_compile_options(${PROJECT_NAME} PRIVATE /std:c++17 /MP)
-  target_link_options(${PROJECT_NAME} PUBLIC /ignore:4099)
-  configure_file(${CMAKE_SOURCE_DIR}/configuration/visualstudio.vcxproj.user.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.vcxproj.user @ONLY)
-endif(MSVC)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
-set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin")
-set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin")
+include_directories(${CMAKE_SOURCE_DIR}/includes)
