@@ -1,4 +1,5 @@
 #include "physics.h"
+#include "../scene/Terrain.h"
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <cmath>
@@ -14,7 +15,7 @@ namespace CFG {
 }
 }
 
-void Physics::updateCar(Car &car, float dt, const Controls &c)
+void Physics::updateCar(Car &car, float dt, const Controls &c, Terrain *terrain)
 {
   float accel = 0.0f;
   if (c.throttle)
@@ -24,7 +25,7 @@ void Physics::updateCar(Car &car, float dt, const Controls &c)
 
   if (!c.throttle && !c.brake)
     accel += -CFG::DRAG * car.velocity;
-
+  // Update velocity from throttle/brake/drag
   car.velocity += accel * dt;
   if (car.velocity > CFG::MAX_SPEED)
     car.velocity = CFG::MAX_SPEED;
@@ -32,10 +33,52 @@ void Physics::updateCar(Car &car, float dt, const Controls &c)
     car.velocity = -CFG::MAX_REVERSE;
 
   float speedFactor = CFG::MAX_SPEED > 0.0f ? glm::clamp(glm::abs(car.velocity) / CFG::MAX_SPEED, 0.0f, 1.0f) : 0.0f;
+
   // Disable steering: keep car orientation fixed so it only moves forward/backward
   float yawRad = glm::radians(car.yaw);
   glm::vec3 forwardVec = glm::vec3(cos(yawRad), 0.0f, sin(yawRad));
-  car.position += forwardVec * car.velocity * dt;
+
+  // If we have a terrain, add gravity component along the slope and update pitch/roll
+  if (terrain != nullptr)
+  {
+    const float EPS = 0.5f; // sample offset for slope approximation
+    const float GRAVITY = 9.81f;
+
+    float h_center = terrain->getHeight(car.position.x, car.position.z);
+    float h_ahead = terrain->getHeight(car.position.x + forwardVec.x * EPS, car.position.z + forwardVec.z * EPS);
+    float h_back = terrain->getHeight(car.position.x - forwardVec.x * EPS, car.position.z - forwardVec.z * EPS);
+    float slope = (h_ahead - h_back) / (2.0f * EPS); // dh/ds along forward direction
+
+    // gravity acceleration along slope (tunable multiplier)
+    const float SLOPE_SCALE = 6.0f; // tuned scale to feel good in gameplay
+    float slopeAccel = -GRAVITY * slope * SLOPE_SCALE;
+    car.velocity += slopeAccel * dt;
+
+    // lateral slope -> roll
+    glm::vec3 rightVec = glm::vec3(-forwardVec.z, 0.0f, forwardVec.x);
+    float h_left = terrain->getHeight(car.position.x + rightVec.x * EPS, car.position.z + rightVec.z * EPS);
+    float h_right = terrain->getHeight(car.position.x - rightVec.x * EPS, car.position.z - rightVec.z * EPS);
+    float latSlope = (h_right - h_left) / (2.0f * EPS);
+
+    // Update position horizontally
+    car.position += forwardVec * car.velocity * dt;
+
+    // Snap vertical position to terrain plus an offset (car half-height)
+    const float CAR_BASE_HEIGHT = 0.5f;
+    float groundH = terrain->getHeight(car.position.x, car.position.z);
+    car.position.y = groundH + CAR_BASE_HEIGHT;
+
+    // update pitch and roll from slopes (convert to degrees)
+    car.pitch = glm::degrees(std::atan(slope));
+    car.roll = glm::degrees(std::atan(latSlope));
+  }
+  else
+  {
+    // No terrain: simple horizontal move
+    car.position += forwardVec * car.velocity * dt;
+    car.pitch = 0.0f;
+    car.roll = 0.0f;
+  }
 }
 
 void Physics::updateCamera(const Car &car, Camera &cam)

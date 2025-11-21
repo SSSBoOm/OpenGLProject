@@ -91,7 +91,7 @@ int main()
     Input::handleEscape(window);
     Input::poll(window, controls);
 
-    Physics::updateCar(car, deltaTime, controls);
+    Physics::updateCar(car, deltaTime, controls, &scene.getTerrain());
     Physics::updateCamera(car, camera);
 
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);

@@ -8,6 +8,8 @@ class Car {
 public:
   glm::vec3 position{0.0f};
   float yaw = -90.0f;
+  float pitch = 0.0f;
+  float roll = 0.0f;
   float velocity = 0.0f;
 
   glm::mat4 getModelMatrix() const
@@ -15,6 +17,8 @@ public:
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
     model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f));
     return model;
   }
 };

@@ -138,6 +138,10 @@ bool Scene::init(int scrWidth, int scrHeight)
   }
 
   std::cerr << "Scene::init: models loaded = " << models.size() << std::endl;
+  // initialize procedural terrain (width, depth, scale, heightScale)
+  if (!terrain.init(160, 160, 1.0f, 3.5f)) {
+    std::cerr << "Scene::init: terrain initialization failed" << std::endl;
+  }
   return true;
 }
 
@@ -253,9 +257,8 @@ void Scene::renderScene(Shader &shader, Camera &camera, Car &car, int selectedIn
   shader.setMat4("model", groundModel);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, groundTexture);
-  glBindVertexArray(groundVAO);
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-  glBindVertexArray(0);
+  // render procedural terrain in-game
+  terrain.render();
 }
 
 void Scene::cleanup()
@@ -268,4 +271,5 @@ void Scene::cleanup()
   if (bgVBO) glDeleteBuffers(1, &bgVBO);
   if (bgEBO) glDeleteBuffers(1, &bgEBO);
   if (backgroundTexture) glDeleteTextures(1, &backgroundTexture);
+  terrain.cleanup();
 }

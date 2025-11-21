@@ -11,6 +11,7 @@
 #include "../core/controls.h"
 #include "../core/car.h"
 #include <learnopengl/camera.h>
+#include "Terrain.h"
 
 struct ModelInfo
 {
@@ -31,6 +32,9 @@ public:
 
   void cleanup();
 
+  // Access the scene's terrain for physics sampling
+  Terrain &getTerrain() { return terrain; }
+
 private:
   unsigned int groundVAO = 0;
   unsigned int groundVBO = 0;
@@ -44,4 +48,6 @@ private:
   std::vector<ModelInfo> modelInfos;
   std::vector<std::string> modelPaths;
   std::vector<Model> models;
+
+  Terrain terrain;
 };
