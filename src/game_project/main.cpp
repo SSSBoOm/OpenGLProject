@@ -68,6 +68,65 @@ int main()
   Shader ourShader("1.model_loading.vs", "1.model_loading.fs");
   stbi_set_flip_vertically_on_load(false);
 
+  float groundVertices[] = {
+      -50.0f, 0.0f, -50.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+      50.0f, 0.0f, -50.0f, 0.0f, 1.0f, 0.0f, 10.0f, 0.0f,
+      50.0f, 0.0f, 50.0f, 0.0f, 1.0f, 0.0f, 10.0f, 10.0f,
+      -50.0f, 0.0f, 50.0f, 0.0f, 1.0f, 0.0f, 0.0f, 10.0f};
+
+  unsigned int groundIndices[] = {
+      0, 1, 2,
+      0, 2, 3};
+
+  unsigned int groundVAO, groundVBO, groundEBO;
+  glGenVertexArrays(1, &groundVAO);
+  glGenBuffers(1, &groundVBO);
+  glGenBuffers(1, &groundEBO);
+
+  glBindVertexArray(groundVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, groundVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(groundVertices), groundVertices, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, groundEBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(groundIndices), groundIndices, GL_STATIC_DRAW);
+
+  // position attribute
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+  // normal attribute
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+  // texture coord attribute
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+
+  glBindVertexArray(0);
+
+  // Load ground texture
+  unsigned int groundTexture;
+  glGenTextures(1, &groundTexture);
+  glBindTexture(GL_TEXTURE_2D, groundTexture);
+  // Set texture wrapping and filtering options
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  // Load and generate texture
+  int width, height, nrChannels;
+  std::string texturePath = FileSystem::getPath("resources/images/Concrete.jpg");
+  unsigned char *data = stbi_load(texturePath.c_str(), &width, &height, &nrChannels, 0);
+  if (data)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else
+  {
+    std::cout << "Failed to load ground texture" << std::endl;
+  }
+  stbi_image_free(data);
+
   // Available model paths (relative to project root via FileSystem)
   std::vector<std::string> modelPaths = {
       FileSystem::getPath("resources/objects/police_car/police_car.obj"),
@@ -153,6 +212,16 @@ int main()
     ourShader.setMat4("model", model);
 
     models[selectedIndex].Draw(ourShader);
+
+    // Draw ground plane with texture
+    glm::mat4 groundModel = glm::mat4(1.0f);
+    ourShader.setMat4("model", groundModel);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, groundTexture);
+    glBindVertexArray(groundVAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
@@ -189,9 +258,25 @@ int main()
     model2 = glm::scale(model2, glm::vec3(1.0f, 1.0f, 1.0f));
     ourShader.setMat4("model", model2);
     models[selectedIndex].Draw(ourShader);
+
+    // Draw ground plane with texture
+    glm::mat4 groundModel2 = glm::mat4(1.0f);
+    ourShader.setMat4("model", groundModel2);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, groundTexture);
+    glBindVertexArray(groundVAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
+
+  // Cleanup
+  glDeleteVertexArrays(1, &groundVAO);
+  glDeleteBuffers(1, &groundVBO);
+  glDeleteBuffers(1, &groundEBO);
+  glDeleteTextures(1, &groundTexture);
   glfwTerminate();
   return 0;
 }
