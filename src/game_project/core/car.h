@@ -4,13 +4,26 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-class Car {
+// Forward declaration to avoid header conflicts between Bullet and Assimp
+class btRigidBody;
+class btTransform;
+class btVector3;
+class btQuaternion;
+
+class Car
+{
 public:
   glm::vec3 position{0.0f};
   float yaw = -90.0f;
   float pitch = 0.0f;
   float roll = 0.0f;
   float velocity = 0.0f;
+
+  // Bullet physics rigid body
+  btRigidBody *rigidBody = nullptr;
+
+  // Sync position and rotation from Bullet rigid body
+  void syncFromPhysics();
 
   glm::mat4 getModelMatrix() const
   {

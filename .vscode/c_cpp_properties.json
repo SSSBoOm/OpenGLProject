@@ -1,15 +1,16 @@
 {
-    "configurations": [
-        {
-            "name": "Mac",
-            "includePath": [
-                "${default}",
-                "${workspaceFolder}/build/configuration"
-            ],
-            "defines": [],
-            "cStandard": "c17",
-            "cppStandard": "c++17"
-        }
-    ],
-    "version": 4
+  "configurations": [
+    {
+      "name": "Mac",
+      "includePath": [
+        "${default}",
+        "${workspaceFolder}/build/configuration",
+        "/opt/homebrew/include/**"
+      ],
+      "defines": [],
+      "cStandard": "c17",
+      "cppStandard": "c++17"
+    }
+  ],
+  "version": 4
 }

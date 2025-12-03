@@ -18,6 +18,7 @@
 #include "core/controls.h"
 #include "core/callbacks.h"
 #include "physics/physics.h"
+#include "physics/PhysicsWorld.h"
 #include "input/input.h"
 #include "scene/scene.h"
 
@@ -81,6 +82,12 @@ int main()
     return 0;
   }
 
+  // Initialize Bullet Physics World
+  PhysicsWorld physicsWorld;
+
+  // Initialize car with physics
+  Physics::initializeCar(car, physicsWorld, car.position);
+
   // Main game loop: use chosen model
   while (!glfwWindowShouldClose(window))
   {
@@ -91,7 +98,7 @@ int main()
     Input::handleEscape(window);
     Input::poll(window, controls);
 
-    Physics::updateCar(car, deltaTime, controls, &scene.getTerrain());
+    Physics::updateCar(car, deltaTime, controls, physicsWorld, &scene.getTerrain());
     Physics::updateCamera(car, camera);
 
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
