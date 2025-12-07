@@ -6,7 +6,8 @@
 
 class Shader;
 
-class Terrain {
+class Terrain
+{
 public:
   Terrain();
   ~Terrain();
@@ -17,6 +18,9 @@ public:
 
   // Render terrain (uses currently bound shader; shader must accept 'model')
   void render();
+
+  // Update terrain position for infinite generation based on player position
+  void update(float playerX, float playerZ);
 
   // Sample terrain height at world (x,z)
   float getHeight(float x, float z) const;
@@ -30,6 +34,10 @@ private:
   int depth = 0;
   float scale = 1.0f;
   float heightScale = 1.0f;
+
+  // Offset for infinite terrain generation
+  float offsetX = 0.0f;
+  float offsetZ = 0.0f;
 
   std::vector<float> heights; // size width*depth
 

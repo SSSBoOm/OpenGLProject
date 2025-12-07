@@ -12,7 +12,7 @@ namespace
     constexpr float ACCEL_FORCE = 2000.0f;
     constexpr float BRAKE_FORCE = 3000.0f;
     constexpr float STEER_TORQUE = 300.0f;
-    constexpr float MAX_SPEED = 12.0f;
+    constexpr float MAX_SPEED = 32.0f;
     constexpr float MAX_SPEED_BOOST = 128.0f;
     constexpr float CAR_MASS = 1000.0f;
     constexpr float MAX_REVERSE = 6.0f;

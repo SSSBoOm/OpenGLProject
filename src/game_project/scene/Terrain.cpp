@@ -97,8 +97,8 @@ bool Terrain::generateMesh()
   {
     for (int ix = 0; ix < width; ++ix)
     {
-      float wx = (ix - width / 2) * scale;
-      float wz = (iz - depth / 2) * scale;
+      float wx = (ix - width / 2) * scale + offsetX;
+      float wz = (iz - depth / 2) * scale + offsetZ;
       float h = heights[iz * width + ix];
       glm::vec3 n = computeNormalAt(ix, iz);
       Vertex v;
@@ -166,8 +166,9 @@ float Terrain::getHeight(float x, float z) const
 {
   if (width < 2 || depth < 2)
     return 0.0f;
-  float fx = (x / scale) + (width / 2.0f);
-  float fz = (z / scale) + (depth / 2.0f);
+  // Adjust for terrain offset
+  float fx = ((x - offsetX) / scale) + (width / 2.0f);
+  float fz = ((z - offsetZ) / scale) + (depth / 2.0f);
   int ix = static_cast<int>(std::floor(fx));
   int iz = static_cast<int>(std::floor(fz));
   float tx = fx - ix;
@@ -197,6 +198,49 @@ glm::vec3 Terrain::getNormal(float x, float z) const
   float hU = getHeight(x, z + EPS);
   glm::vec3 n = glm::normalize(glm::vec3(hL - hR, 2.0f * EPS, hD - hU));
   return n;
+}
+
+void Terrain::update(float playerX, float playerZ)
+{
+  // Regenerate terrain when player moves far from current center
+  const float REGEN_DISTANCE = (width * scale) * 0.3f; // Regenerate when 30% away from center
+
+  float distX = playerX - offsetX;
+  float distZ = playerZ - offsetZ;
+
+  bool needsRegeneration = false;
+
+  // Check if player has moved far enough in X direction
+  if (std::abs(distX) > REGEN_DISTANCE)
+  {
+    offsetX += (distX > 0 ? 1.0f : -1.0f) * REGEN_DISTANCE;
+    needsRegeneration = true;
+  }
+
+  // Check if player has moved far enough in Z direction
+  if (std::abs(distZ) > REGEN_DISTANCE)
+  {
+    offsetZ += (distZ > 0 ? 1.0f : -1.0f) * REGEN_DISTANCE;
+    needsRegeneration = true;
+  }
+
+  if (needsRegeneration)
+  {
+    // Regenerate height data centered around new offset
+    for (int iz = 0; iz < depth; ++iz)
+    {
+      for (int ix = 0; ix < width; ++ix)
+      {
+        float wx = (ix - width / 2) * scale + offsetX;
+        float wz = (iz - depth / 2) * scale + offsetZ;
+        float h = sampleNoise(wx, wz) * heightScale;
+        heights[iz * width + ix] = h;
+      }
+    }
+
+    // Rebuild the mesh with new heights
+    generateMesh();
+  }
 }
 
 void Terrain::render()

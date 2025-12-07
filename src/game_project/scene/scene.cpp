@@ -258,6 +258,8 @@ void Scene::renderScene(Shader &shader, Camera &camera, Car &car, int selectedIn
   shader.setMat4("model", groundModel);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, groundTexture);
+  // Update terrain for infinite generation
+  terrain.update(car.position.x, car.position.z);
   // render procedural terrain in-game
   terrain.render();
 }
