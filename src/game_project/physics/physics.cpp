@@ -16,7 +16,7 @@ namespace
     constexpr float MAX_SPEED_BOOST = 128.0f;
     constexpr float CAR_MASS = 1000.0f;
     constexpr float MAX_REVERSE = 6.0f;
-    constexpr float BOOST_FORCE_MULTIPLIER = 10.0f;
+    constexpr float BOOST_FORCE_MULTIPLIER = 6.0f;
   }
 }
 
@@ -100,7 +100,14 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
   // Sync car state from physics
   car.syncFromPhysics();
 
-  // Four-wheel terrain contact system
+  // Calculate current speed magnitude
+  float currentSpeed = velocity.length();
+  const float FLIGHT_SPEED_THRESHOLD = 20.0f; // Speed required to take off
+  const float LIFT_FORCE = 3500.0f;           // Upward force when flying at high speed
+  const float TAKEOFF_BOOST = 2000.0f;        // Extra upward force to initiate takeoff
+  const float AIR_DISTANCE = 1.0f;            // Distance above terrain to consider "airborne"
+
+  // Four-wheel terrain contact system with realistic physics
   if (terrain != nullptr)
   {
     // Car dimensions (adjust these based on your car model size)
@@ -125,42 +132,77 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
     float heightRL = terrain->getHeight(rearLeft.x, rearLeft.z);
     float heightRR = terrain->getHeight(rearRight.x, rearRight.z);
 
-    // Calculate average height and pitch/roll from wheel heights
-    float avgFront = (heightFL + heightFR) * 0.5f;
-    float avgRear = (heightRL + heightRR) * 0.5f;
-    float avgLeft = (heightFL + heightRL) * 0.5f;
-    float avgRight = (heightFR + heightRR) * 0.5f;
+    // Calculate average terrain height
+    float avgTerrainHeight = (heightFL + heightFR + heightRL + heightRR) * 0.25f;
+    float distanceAboveTerrain = car.position.y - avgTerrainHeight;
 
-    // Calculate pitch (front-rear tilt) and roll (left-right tilt)
-    float targetPitch = -std::atan2(avgFront - avgRear, WHEEL_BASE);
-    float targetRoll = std::atan2(avgLeft - avgRight, TRACK_WIDTH);
+    // Check if car should be flying
+    bool isAirborne = distanceAboveTerrain > AIR_DISTANCE;
+    bool wantsToFly = currentSpeed > FLIGHT_SPEED_THRESHOLD;
 
-    // Average of all four wheels for car center height
-    float targetHeight = (heightFL + heightFR + heightRL + heightRR) * 0.25f + WHEEL_RADIUS;
+    // Apply lift force when going fast enough (both grounded and airborne)
+    if (wantsToFly)
+    {
+      float speedRatio = (currentSpeed - FLIGHT_SPEED_THRESHOLD) / FLIGHT_SPEED_THRESHOLD;
+      speedRatio = std::min(speedRatio, 2.0f); // Cap the lift multiplier
 
-    // Update car physics transform with new position and orientation
-    btTransform newTrans;
-    car.rigidBody->getMotionState()->getWorldTransform(newTrans);
+      // Base lift force
+      btVector3 liftForce(0, LIFT_FORCE * speedRatio, 0);
+      car.rigidBody->applyCentralForce(liftForce);
 
-    // Set new position
-    newTrans.setOrigin(btVector3(car.position.x, targetHeight, car.position.z));
+      // Extra boost when taking off from ground
+      if (!isAirborne)
+      {
+        btVector3 takeoffForce(0, TAKEOFF_BOOST, 0);
+        car.rigidBody->applyCentralForce(takeoffForce);
+      }
+    }
 
-    // Create rotation quaternion from yaw, pitch, roll
-    btQuaternion rotation;
-    rotation.setEulerZYX(targetRoll, glm::radians(car.yaw), targetPitch);
-    newTrans.setRotation(rotation);
+    // Ground alignment only when not flying fast
+    if (!wantsToFly || distanceAboveTerrain < 0.2f)
+    {
+      // Ground mode - snap to terrain and align with surface
+      // Calculate average height and pitch/roll from wheel heights
+      float avgFront = (heightFL + heightFR) * 0.5f;
+      float avgRear = (heightRL + heightRR) * 0.5f;
+      float avgLeft = (heightFL + heightRL) * 0.5f;
+      float avgRight = (heightFR + heightRR) * 0.5f;
 
-    // Apply the transform
-    car.rigidBody->setWorldTransform(newTrans);
-    car.rigidBody->getMotionState()->setWorldTransform(newTrans);
+      // Calculate pitch (front-rear tilt) and roll (left-right tilt)
+      float targetPitch = -std::atan2(avgFront - avgRear, WHEEL_BASE);
+      float targetRoll = std::atan2(avgLeft - avgRight, TRACK_WIDTH);
 
-    // Reset vertical velocity to prevent bouncing
-    btVector3 vel = car.rigidBody->getLinearVelocity();
-    vel.setY(0);
-    car.rigidBody->setLinearVelocity(vel);
+      // Average of all four wheels for car center height
+      float targetHeight = avgTerrainHeight + WHEEL_RADIUS;
 
-    // Sync back to car
-    car.syncFromPhysics();
+      // Only snap if car is below or close to terrain
+      if (car.position.y <= targetHeight + 0.5f)
+      {
+        // Update car physics transform with new position and orientation
+        btTransform newTrans;
+        car.rigidBody->getMotionState()->getWorldTransform(newTrans);
+
+        // Set new position
+        newTrans.setOrigin(btVector3(car.position.x, targetHeight, car.position.z));
+
+        // Create rotation quaternion from yaw, pitch, roll
+        btQuaternion rotation;
+        rotation.setEulerZYX(targetRoll, glm::radians(car.yaw), targetPitch);
+        newTrans.setRotation(rotation);
+
+        // Apply the transform
+        car.rigidBody->setWorldTransform(newTrans);
+        car.rigidBody->getMotionState()->setWorldTransform(newTrans);
+
+        // Reset vertical velocity when landing
+        btVector3 vel = car.rigidBody->getLinearVelocity();
+        vel.setY(0);
+        car.rigidBody->setLinearVelocity(vel);
+
+        // Sync back to car
+        car.syncFromPhysics();
+      }
+    }
   }
 }
 

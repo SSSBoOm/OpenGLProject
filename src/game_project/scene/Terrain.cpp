@@ -11,8 +11,13 @@ Terrain::~Terrain() { cleanup(); }
 
 static float sampleNoise(float x, float z)
 {
-  // Sine wave along z-axis, flat along x-axis
-  return std::sin(z * 0.1f);
+  // Smooth random-looking terrain using multiple octaves of sine waves
+  float v = 0.0f;
+  v += 1.0f * std::sin(z * 0.05f) * std::cos(x * 0.03f);
+  v += 0.5f * std::sin(z * 0.12f + 1.7f) * std::cos(x * 0.08f + 2.3f);
+  v += 0.25f * std::sin(z * 0.23f + 3.1f) * std::cos(x * 0.15f + 4.2f);
+  v += 0.125f * std::sin(z * 0.41f + 5.5f) * std::cos(x * 0.28f + 1.9f);
+  return v;
 }
 
 bool Terrain::init(int w, int d, float s, float hscale)
