@@ -11,12 +11,8 @@ Terrain::~Terrain() { cleanup(); }
 
 static float sampleNoise(float x, float z)
 {
-  // simple layered sine/cosine noise for hills
-  float v = 0.0f;
-  v += 0.6f * std::sin(x * 0.08f) * std::cos(z * 0.08f);
-  v += 0.25f * std::sin(x * 0.02f + z * 0.015f);
-  v += 0.15f * std::cos(x * 0.12f - z * 0.05f);
-  return v;
+  // Sine wave along z-axis, flat along x-axis
+  return std::sin(z * 0.1f);
 }
 
 bool Terrain::init(int w, int d, float s, float hscale)
@@ -44,24 +40,44 @@ bool Terrain::init(int w, int d, float s, float hscale)
 
 void Terrain::cleanup()
 {
-  if (EBO) { glDeleteBuffers(1, &EBO); EBO = 0; }
-  if (VBO) { glDeleteBuffers(1, &VBO); VBO = 0; }
-  if (VAO) { glDeleteVertexArrays(1, &VAO); VAO = 0; }
+  if (EBO)
+  {
+    glDeleteBuffers(1, &EBO);
+    EBO = 0;
+  }
+  if (VBO)
+  {
+    glDeleteBuffers(1, &VBO);
+    VBO = 0;
+  }
+  if (VAO)
+  {
+    glDeleteVertexArrays(1, &VAO);
+    VAO = 0;
+  }
   indexCount = 0;
   heights.clear();
 }
 
 bool Terrain::generateMesh()
 {
-  if (width < 2 || depth < 2) return false;
+  if (width < 2 || depth < 2)
+    return false;
 
-  struct Vertex { float px, py, pz; float nx, ny, nz; float u, v; };
+  struct Vertex
+  {
+    float px, py, pz;
+    float nx, ny, nz;
+    float u, v;
+  };
   std::vector<Vertex> verts;
   verts.reserve(width * depth);
 
   // helper to compute normal via central differences
-  auto computeNormalAt = [&](int ix, int iz)->glm::vec3 {
-    auto h = [&](int x, int z)->float {
+  auto computeNormalAt = [&](int ix, int iz) -> glm::vec3
+  {
+    auto h = [&](int x, int z) -> float
+    {
       x = std::clamp(x, 0, width - 1);
       z = std::clamp(z, 0, depth - 1);
       return heights[z * width + x];
@@ -81,8 +97,12 @@ bool Terrain::generateMesh()
       float h = heights[iz * width + ix];
       glm::vec3 n = computeNormalAt(ix, iz);
       Vertex v;
-      v.px = wx; v.py = h; v.pz = wz;
-      v.nx = n.x; v.ny = n.y; v.nz = n.z;
+      v.px = wx;
+      v.py = h;
+      v.pz = wz;
+      v.nx = n.x;
+      v.ny = n.y;
+      v.nz = n.z;
       v.u = (float)ix / (float)(width - 1);
       v.v = (float)iz / (float)(depth - 1);
       verts.push_back(v);
@@ -139,14 +159,16 @@ bool Terrain::generateMesh()
 
 float Terrain::getHeight(float x, float z) const
 {
-  if (width < 2 || depth < 2) return 0.0f;
+  if (width < 2 || depth < 2)
+    return 0.0f;
   float fx = (x / scale) + (width / 2.0f);
   float fz = (z / scale) + (depth / 2.0f);
   int ix = static_cast<int>(std::floor(fx));
   int iz = static_cast<int>(std::floor(fz));
   float tx = fx - ix;
   float tz = fz - iz;
-  auto h = [&](int xidx, int zidx)->float {
+  auto h = [&](int xidx, int zidx) -> float
+  {
     xidx = std::clamp(xidx, 0, width - 1);
     zidx = std::clamp(zidx, 0, depth - 1);
     return heights[zidx * width + xidx];
@@ -174,7 +196,8 @@ glm::vec3 Terrain::getNormal(float x, float z) const
 
 void Terrain::render()
 {
-  if (!VAO) return;
+  if (!VAO)
+    return;
   glBindVertexArray(VAO);
   glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
   glBindVertexArray(0);

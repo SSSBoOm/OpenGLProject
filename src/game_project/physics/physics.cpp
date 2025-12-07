@@ -13,8 +13,10 @@ namespace
     constexpr float BRAKE_FORCE = 3000.0f;
     constexpr float STEER_TORQUE = 300.0f;
     constexpr float MAX_SPEED = 12.0f;
-    constexpr float MAX_REVERSE = 6.0f;
+    constexpr float MAX_SPEED_BOOST = 128.0f;
     constexpr float CAR_MASS = 1000.0f;
+    constexpr float MAX_REVERSE = 6.0f;
+    constexpr float BOOST_FORCE_MULTIPLIER = 10.0f;
   }
 }
 
@@ -51,7 +53,7 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
 
   // Get forward direction from current orientation
   btMatrix3x3 basis = trans.getBasis();
-  btVector3 forward = basis * btVector3(1, 0, 0); // Forward in local space
+  btVector3 forward = basis * btVector3(-1, 0, 0); // Forward in local space (reversed)
   forward.setY(0);
   forward = forward.normalize();
 
@@ -61,9 +63,12 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
   // Apply throttle/brake forces
   if (c.throttle)
   {
-    if (forwardSpeed < CFG::MAX_SPEED)
+    float maxSpeed = c.boost ? CFG::MAX_SPEED_BOOST : CFG::MAX_SPEED;
+    float accelForce = c.boost ? CFG::ACCEL_FORCE * CFG::BOOST_FORCE_MULTIPLIER : CFG::ACCEL_FORCE;
+
+    if (forwardSpeed < maxSpeed)
     {
-      btVector3 force = forward * CFG::ACCEL_FORCE;
+      btVector3 force = forward * accelForce;
       car.rigidBody->applyCentralForce(force);
     }
   }
@@ -95,28 +100,67 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
   // Sync car state from physics
   car.syncFromPhysics();
 
-  // Optional: Snap to terrain height if terrain exists
+  // Four-wheel terrain contact system
   if (terrain != nullptr)
   {
-    float terrainHeight = terrain->getHeight(car.position.x, car.position.z);
-    const float CAR_BASE_HEIGHT = 0.5f;
+    // Car dimensions (adjust these based on your car model size)
+    const float WHEEL_BASE = 2.0f;   // Distance between front and rear axles
+    const float TRACK_WIDTH = 1.5f;  // Distance between left and right wheels
+    const float WHEEL_RADIUS = 0.4f; // Wheel size
 
-    // If car is below terrain, push it up
-    if (car.position.y < terrainHeight + CAR_BASE_HEIGHT)
-    {
-      btTransform newTrans;
-      car.rigidBody->getMotionState()->getWorldTransform(newTrans);
-      newTrans.setOrigin(btVector3(car.position.x, terrainHeight + CAR_BASE_HEIGHT, car.position.z));
-      car.rigidBody->setWorldTransform(newTrans);
-      car.rigidBody->getMotionState()->setWorldTransform(newTrans);
+    // Get car's current orientation
+    float yawRad = glm::radians(car.yaw);
+    glm::vec3 forward(cos(yawRad), 0.0f, sin(yawRad));
+    glm::vec3 right(-forward.z, 0.0f, forward.x);
 
-      // Reset vertical velocity
-      btVector3 vel = car.rigidBody->getLinearVelocity();
-      vel.setY(0);
-      car.rigidBody->setLinearVelocity(vel);
+    // Calculate wheel positions in world space
+    glm::vec3 frontLeft = car.position + forward * (WHEEL_BASE * 0.5f) + right * (TRACK_WIDTH * 0.5f);
+    glm::vec3 frontRight = car.position + forward * (WHEEL_BASE * 0.5f) - right * (TRACK_WIDTH * 0.5f);
+    glm::vec3 rearLeft = car.position - forward * (WHEEL_BASE * 0.5f) + right * (TRACK_WIDTH * 0.5f);
+    glm::vec3 rearRight = car.position - forward * (WHEEL_BASE * 0.5f) - right * (TRACK_WIDTH * 0.5f);
 
-      car.syncFromPhysics();
-    }
+    // Get terrain height at each wheel position
+    float heightFL = terrain->getHeight(frontLeft.x, frontLeft.z);
+    float heightFR = terrain->getHeight(frontRight.x, frontRight.z);
+    float heightRL = terrain->getHeight(rearLeft.x, rearLeft.z);
+    float heightRR = terrain->getHeight(rearRight.x, rearRight.z);
+
+    // Calculate average height and pitch/roll from wheel heights
+    float avgFront = (heightFL + heightFR) * 0.5f;
+    float avgRear = (heightRL + heightRR) * 0.5f;
+    float avgLeft = (heightFL + heightRL) * 0.5f;
+    float avgRight = (heightFR + heightRR) * 0.5f;
+
+    // Calculate pitch (front-rear tilt) and roll (left-right tilt)
+    float targetPitch = -std::atan2(avgFront - avgRear, WHEEL_BASE);
+    float targetRoll = std::atan2(avgLeft - avgRight, TRACK_WIDTH);
+
+    // Average of all four wheels for car center height
+    float targetHeight = (heightFL + heightFR + heightRL + heightRR) * 0.25f + WHEEL_RADIUS;
+
+    // Update car physics transform with new position and orientation
+    btTransform newTrans;
+    car.rigidBody->getMotionState()->getWorldTransform(newTrans);
+
+    // Set new position
+    newTrans.setOrigin(btVector3(car.position.x, targetHeight, car.position.z));
+
+    // Create rotation quaternion from yaw, pitch, roll
+    btQuaternion rotation;
+    rotation.setEulerZYX(targetRoll, glm::radians(car.yaw), targetPitch);
+    newTrans.setRotation(rotation);
+
+    // Apply the transform
+    car.rigidBody->setWorldTransform(newTrans);
+    car.rigidBody->getMotionState()->setWorldTransform(newTrans);
+
+    // Reset vertical velocity to prevent bouncing
+    btVector3 vel = car.rigidBody->getLinearVelocity();
+    vel.setY(0);
+    car.rigidBody->setLinearVelocity(vel);
+
+    // Sync back to car
+    car.syncFromPhysics();
   }
 }
 

@@ -101,8 +101,7 @@ bool Scene::init(int scrWidth, int scrHeight)
       -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
       1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
       1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-      -1.0f, 1.0f, 0.0f, 0.0f, 1.0f
-  };
+      -1.0f, 1.0f, 0.0f, 0.0f, 1.0f};
   unsigned int bgQuadIndices[] = {0, 1, 2, 0, 2, 3};
 
   glGenVertexArrays(1, &bgVAO);
@@ -139,7 +138,8 @@ bool Scene::init(int scrWidth, int scrHeight)
 
   std::cerr << "Scene::init: models loaded = " << models.size() << std::endl;
   // initialize procedural terrain (width, depth, scale, heightScale)
-  if (!terrain.init(160, 160, 1.0f, 3.5f)) {
+  if (!terrain.init(160, 1600, 1.0f, 3.5f))
+  {
     std::cerr << "Scene::init: terrain initialization failed" << std::endl;
   }
   return true;
@@ -217,7 +217,8 @@ bool Scene::showMenu(GLFWwindow *window, Shader &shader, Controls &controls, int
     model = glm::rotate(model, -angle * 0.8f, glm::vec3(0.0f, 1.0f, 0.0f));
     shader.setMat4("model", model);
 
-    if (models.empty()) {
+    if (models.empty())
+    {
       std::cerr << "Scene::showMenu: models vector is empty, aborting menu." << std::endl;
       return false;
     }
@@ -263,13 +264,21 @@ void Scene::renderScene(Shader &shader, Camera &camera, Car &car, int selectedIn
 
 void Scene::cleanup()
 {
-  if (groundVAO) glDeleteVertexArrays(1, &groundVAO);
-  if (groundVBO) glDeleteBuffers(1, &groundVBO);
-  if (groundEBO) glDeleteBuffers(1, &groundEBO);
-  if (groundTexture) glDeleteTextures(1, &groundTexture);
-  if (bgVAO) glDeleteVertexArrays(1, &bgVAO);
-  if (bgVBO) glDeleteBuffers(1, &bgVBO);
-  if (bgEBO) glDeleteBuffers(1, &bgEBO);
-  if (backgroundTexture) glDeleteTextures(1, &backgroundTexture);
+  if (groundVAO)
+    glDeleteVertexArrays(1, &groundVAO);
+  if (groundVBO)
+    glDeleteBuffers(1, &groundVBO);
+  if (groundEBO)
+    glDeleteBuffers(1, &groundEBO);
+  if (groundTexture)
+    glDeleteTextures(1, &groundTexture);
+  if (bgVAO)
+    glDeleteVertexArrays(1, &bgVAO);
+  if (bgVBO)
+    glDeleteBuffers(1, &bgVBO);
+  if (bgEBO)
+    glDeleteBuffers(1, &bgEBO);
+  if (backgroundTexture)
+    glDeleteTextures(1, &backgroundTexture);
   terrain.cleanup();
 }
