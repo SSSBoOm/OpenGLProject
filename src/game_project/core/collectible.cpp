@@ -49,7 +49,7 @@ float Collectibles::getScale(CollectibleType type)
         case CollectibleType::COIN_RARE:
             return DEFAULT_SCALE * 2.0;
         case CollectibleType::TURBO:
-            return DEFAULT_SCALE * 3.0f;
+            return DEFAULT_SCALE * 0.5;
         case CollectibleType::FUEL:
             return DEFAULT_SCALE * 0.5;
         default:
@@ -73,6 +73,38 @@ int Collectibles::getDefaultValue(CollectibleType type)
     }
 }
 
+float Collectibles::getYOffset(CollectibleType type)
+{
+    switch (type) {
+        case CollectibleType::COIN:
+            return 0.0f;
+        case CollectibleType::COIN_RARE:
+            return 0.0f;
+        case CollectibleType::TURBO:
+            return 0.75f; // Turbo floats higher
+        case CollectibleType::FUEL:
+            return 0.0f;
+        default:
+            return 0.0f;
+    }
+}
+
+int Collectibles::getMaxSpawnCount(CollectibleType type)
+{
+    switch (type) {
+        case CollectibleType::COIN:
+            return -1; // No limit for regular coins
+        case CollectibleType::COIN_RARE:
+            return 1; // Only 1 rare coin per spawn group
+        case CollectibleType::TURBO:
+            return 1; // Only 1 turbo per spawn group
+        case CollectibleType::FUEL:
+            return 1; // Only 1 fuel per spawn group
+        default:
+            return -1; // No limit by default
+    }
+}
+
 void Collectibles::spawnItem(const glm::vec3 &position, CollectibleType type)
 {
     CollectibleItem item;
@@ -91,9 +123,13 @@ void Collectibles::spawnItem(const glm::vec3 &position, CollectibleType type)
 
 void Collectibles::spawnRandom(int count, CollectibleType type)
 {
+    // Apply spawn limit for special collectibles
+    int maxSpawn = getMaxSpawnCount(type);
+    if (maxSpawn > 0 && count > maxSpawn) {
+        count = maxSpawn;
+    }
+    
     const float desiredFaceHeight = 1.0f;
-    const float baseLift = BASE_HALF_HEIGHT * getScale(type);
-    const float storedY = desiredFaceHeight - baseLift;
 
     for (int i = 0; i < count; ++i) {
         float x = (std::rand() / (float)RAND_MAX) * 60.0f - 20.0f;
@@ -105,6 +141,10 @@ void Collectibles::spawnRandom(int count, CollectibleType type)
             itemType = CollectibleType::COIN_RARE;
         }
         
+        const float baseLift = BASE_HALF_HEIGHT * getScale(itemType);
+        const float yOffset = getYOffset(itemType);
+        const float storedY = desiredFaceHeight - baseLift + yOffset;
+        
         spawnItem(glm::vec3(x, storedY, z), itemType);
     }
 }
@@ -113,8 +153,12 @@ void Collectibles::spawnAlongDirection(int count, const glm::vec3 &origin, const
                                        const Terrain *terrain, CollectibleType type,
                                        float minForward, float maxForward, float lateralRange)
 {
-    const float baseLift = BASE_HALF_HEIGHT * getScale(type);
-
+    // Apply spawn limit for special collectibles
+    int maxSpawn = getMaxSpawnCount(type);
+    if (maxSpawn > 0 && count > maxSpawn) {
+        count = maxSpawn;
+    }
+    
     glm::vec3 f = glm::normalize(glm::vec3(forward.x, 0.0f, forward.z));
     glm::vec3 right = glm::normalize(glm::vec3(-f.z, 0.0f, f.x));
 
@@ -133,7 +177,33 @@ void Collectibles::spawnAlongDirection(int count, const glm::vec3 &origin, const
             itemType = CollectibleType::COIN_RARE;
         }
         
-        spawnItem(glm::vec3(pos.x, sampledY + baseLift, pos.z), itemType);
+        const float baseLift = BASE_HALF_HEIGHT * getScale(itemType);
+        const float yOffset = getYOffset(itemType);
+        
+        spawnItem(glm::vec3(pos.x, sampledY + baseLift + yOffset, pos.z), itemType);
+    }
+}
+
+void Collectibles::spawnMixedGroup(int coinCount, const glm::vec3 &origin, const glm::vec3 &forward,
+                                   const Terrain *terrain, float minForward, float maxForward,
+                                   float lateralRange, int rareCoinChance, int turboChance, int fuelChance)
+{
+    // Spawn regular coins
+    spawnAlongDirection(coinCount, origin, forward, terrain, CollectibleType::COIN, minForward, maxForward, lateralRange);
+    
+    // Probabilistically spawn rare coin
+    if (rareCoinChance > 0 && (std::rand() % 100) < rareCoinChance) {
+        spawnAlongDirection(1, origin, forward, terrain, CollectibleType::COIN_RARE, minForward, maxForward, lateralRange);
+    }
+    
+    // Probabilistically spawn turbo
+    if (turboChance > 0 && (std::rand() % 100) < turboChance) {
+        spawnAlongDirection(1, origin, forward, terrain, CollectibleType::TURBO, minForward, maxForward, lateralRange);
+    }
+    
+    // Probabilistically spawn fuel
+    if (fuelChance > 0 && (std::rand() % 100) < fuelChance) {
+        spawnAlongDirection(1, origin, forward, terrain, CollectibleType::FUEL, minForward, maxForward, lateralRange);
     }
 }
 

@@ -99,14 +99,13 @@ int main()
   Physics::initializeCar(car, physicsWorld, car.position);
 
   Model coinModel(FileSystem::getPath("resources/objects/coin/Coin.obj"));
-  Model fuelModel(FileSystem::getPath("resources/objects/fuel/fuel.obj")); // TODO: Add fuel model
-  // Model turboModel(FileSystem::getPath("resources/objects/turbo/Turbo.obj")); // TODO: Add turbo model
+  Model fuelModel(FileSystem::getPath("resources/objects/fuel/fuel.obj"));
+  Model nitroModel(FileSystem::getPath("resources/objects/nitro/nitro.obj"));
   
   collectibles.setModel(CollectibleType::COIN, &coinModel);
   collectibles.setModel(CollectibleType::COIN_RARE, &coinModel);
   collectibles.setModel(CollectibleType::FUEL, &fuelModel);
-  // collectibles.setModel(CollectibleType::FUEL, &fuelModel);
-  // collectibles.setModel(CollectibleType::TURBO, &turboModel);
+  collectibles.setModel(CollectibleType::TURBO, &nitroModel);
   
   collectibles.init();
   // initial spawn: place coins ahead of the car along its current forward direction
@@ -158,7 +157,6 @@ int main()
             break;
           case CollectibleType::TURBO:
             std::cout << "  Turbo boost activated! +" << item.value << std::endl;
-            // TODO: Apply turbo boost effect
             break;
           case CollectibleType::FUEL:
             car.addFuel(item.value);
@@ -197,24 +195,12 @@ int main()
         const float checkMaxF = 20.0f;
         const float checkLat = 2.5f;
         if (!collectibles.hasItemsInDirection(car.position, forwardDir, checkMinF, checkMaxF, checkLat, 1, CollectibleType::COIN)) {
-          // spawn in an elongated strip ahead of the car so positions align with movement direction
-          // ensure coins spawn beyond immediate view by increasing minForward
           const float spawnMinF = 8.0f;
           const float spawnMaxF = 30.0f;
           const float spawnLat = 1.8f;
           
-          // Spawn regular coins
-          collectibles.spawnAlongDirection(maxSpawnBatch, car.position, forwardDir, &scene.getTerrain(), CollectibleType::COIN, spawnMinF, spawnMaxF, spawnLat);
-          
-          // 30% chance to spawn 1 rare coin
-          if ((std::rand() % 100) < 30) {
-            collectibles.spawnAlongDirection(1, car.position, forwardDir, &scene.getTerrain(), CollectibleType::COIN_RARE, spawnMinF, spawnMaxF, spawnLat);
-          }
-          
-          // 10% chance to spawn 1 fuel
-          if ((std::rand() % 100) < 10) {
-            collectibles.spawnAlongDirection(1, car.position, forwardDir, &scene.getTerrain(), CollectibleType::FUEL, spawnMinF, spawnMaxF, spawnLat);
-          }
+          collectibles.spawnMixedGroup(maxSpawnBatch, car.position, forwardDir, &scene.getTerrain(), 
+                                      spawnMinF, spawnMaxF, spawnLat, 20, 20, 20);
           
           lastSpawnPos = car.position;
           lastSpawnTime = now;

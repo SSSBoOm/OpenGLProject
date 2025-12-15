@@ -36,6 +36,10 @@ public:
     void spawnAlongDirection(int count, const glm::vec3 &origin, const glm::vec3 &forward, 
                             const Terrain *terrain, CollectibleType type = CollectibleType::COIN,
                             float minForward = 4.0f, float maxForward = 30.0f, float lateralRange = 8.0f);
+    void spawnMixedGroup(int coinCount, const glm::vec3 &origin, const glm::vec3 &forward,
+                        const Terrain *terrain, float minForward = 4.0f, float maxForward = 30.0f,
+                        float lateralRange = 8.0f, int rareCoinChance = 15, int turboChance = 10,
+                        int fuelChance = 5);
     int updateCollect(const glm::vec3 &carPos, float carRadius, const glm::vec3 &carForward, 
                      float carSpeed, std::vector<CollectibleItem> &outCollected);
     void draw(Shader &shader, unsigned int fallbackTexture);
@@ -48,6 +52,8 @@ public:
     static glm::vec3 getColor(CollectibleType type);
     static float getScale(CollectibleType type);
     static int getDefaultValue(CollectibleType type);
+    static float getYOffset(CollectibleType type);
+    static int getMaxSpawnCount(CollectibleType type);
     
 private:
     std::map<CollectibleType, Model*> models;
