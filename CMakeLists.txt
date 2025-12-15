@@ -31,6 +31,7 @@ message(STATUS "Found ASSIMP in ${ASSIMP_INCLUDE_DIR}")
 
 find_package(Freetype REQUIRED)
 message(STATUS "Found Freetype in ${FREETYPE_INCLUDE_DIRS}")
+include_directories(${FREETYPE_INCLUDE_DIRS})
 
 # Find Bullet Physics
 find_package(Bullet REQUIRED)

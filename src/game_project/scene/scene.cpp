@@ -263,8 +263,6 @@ bool Scene::showGameOver(GLFWwindow *window, Shader &shader, GameUI &gameUI, int
   const float exitButtonX = centerX - buttonWidth / 2.0f;
   const float exitButtonY = continueButtonY + buttonHeight + 20.0f;
   
-  glfwSetWindowTitle(window, "Game Over - Out of Fuel!");
-
   while (inGameOver && !glfwWindowShouldClose(window))
   {
     double t = glfwGetTime();
