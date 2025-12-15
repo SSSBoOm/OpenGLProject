@@ -13,6 +13,9 @@
 #include <learnopengl/camera.h>
 #include "Terrain.h"
 
+// Forward declaration
+class GameUI;
+
 struct ModelInfo
 {
   std::string path;
@@ -27,6 +30,8 @@ public:
   bool init(int scrWidth, int scrHeight);
 
   bool showMenu(GLFWwindow *window, Shader &shader, Controls &controls, int &selectedIndex, int scrWidth, int scrHeight);
+
+  bool showGameOver(GLFWwindow *window, Shader &shader, GameUI &gameUI, int finalScore, int scrWidth, int scrHeight);
 
   void renderScene(Shader &shader, Camera &camera, Car &car, int selectedIndex, int scrWidth, int scrHeight);
 

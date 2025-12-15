@@ -82,56 +82,74 @@ int main()
   // Initialize UI
   gameUI.init(SCR_WIDTH, SCR_HEIGHT);
 
-  int selectedIndex = 0;
-  bool started = scene.showMenu(window, ourShader, controls, selectedIndex, SCR_WIDTH, SCR_HEIGHT);
-
-  // If user closed window in menu, exit
-  if (glfwWindowShouldClose(window) || !started)
-  {
-    glfwTerminate();
-    return 0;
-  }
-
-  // Initialize Bullet Physics World
-  PhysicsWorld physicsWorld;
-
-  // Initialize car with physics
-  Physics::initializeCar(car, physicsWorld, car.position);
-
-  Model coinModel(FileSystem::getPath("resources/objects/coin/Coin.obj"));
-  Model fuelModel(FileSystem::getPath("resources/objects/fuel/fuel.obj"));
-  Model nitroModel(FileSystem::getPath("resources/objects/nitro/nitro.obj"));
+  bool continueGame = true;
   
-  collectibles.setModel(CollectibleType::COIN, &coinModel);
-  collectibles.setModel(CollectibleType::COIN_RARE, &coinModel);
-  collectibles.setModel(CollectibleType::FUEL, &fuelModel);
-  collectibles.setModel(CollectibleType::TURBO, &nitroModel);
-  
-  collectibles.init();
-  // initial spawn: place coins ahead of the car along its current forward direction
-  glm::vec3 initialForward = glm::vec3(std::cos(glm::radians(car.yaw)), 0.0f, std::sin(glm::radians(car.yaw)));
-  // initial spawn: fewer coins spread further ahead
-  collectibles.spawnAlongDirection(6, car.position, initialForward, &scene.getTerrain(), CollectibleType::COIN, 8.0f, 25.0f, 1.8f);
-
-  // score tracking
-  int score = 0;
-
-  // Spawn control variables
-  glm::vec3 lastSpawnPos = car.position;
-  const float spawnMoveThreshold = 6.0f; // only spawn if player moved this far
-  const int maxSpawnBatch = 6;           // max coins to spawn at once
-  float lastSpawnTime = 0.0f;
-  const float spawnCooldown = 1.0f;     // seconds between spawn batches
-
-  // Main game loop: use chosen model
-  while (!glfwWindowShouldClose(window))
+  while (continueGame && !glfwWindowShouldClose(window))
   {
-    float currentFrame = static_cast<float>(glfwGetTime());
-    deltaTime = currentFrame - lastFrame;
-    lastFrame = currentFrame;
+    int score = 0;
+    // Reset game state
+    gameOver = false;
+    score = 0;
+    car.position = glm::vec3(0.0f);
+    car.yaw = -90.0f;
+    car.pitch = 0.0f;
+    car.roll = 0.0f;
+    car.velocity = 0.0f;
+    car.fuel = 10.0f;
+    car.turbo = 0.0f;
+    
+    int selectedIndex = 0;
+    bool started = scene.showMenu(window, ourShader, controls, selectedIndex, SCR_WIDTH, SCR_HEIGHT);
 
-    Input::handleEscape(window);
-    Input::poll(window, controls);
+    // If user closed window in menu, exit
+    if (glfwWindowShouldClose(window) || !started)
+    {
+      break;
+    }
+
+    // Initialize Bullet Physics World
+    PhysicsWorld physicsWorld;
+
+    // Initialize car with physics
+    Physics::initializeCar(car, physicsWorld, car.position);
+
+    Model coinModel(FileSystem::getPath("resources/objects/coin/Coin.obj"));
+    Model fuelModel(FileSystem::getPath("resources/objects/fuel/fuel.obj"));
+    Model nitroModel(FileSystem::getPath("resources/objects/nitro/nitro.obj"));
+    
+    collectibles = Collectibles(); // Reset collectibles
+    collectibles.setModel(CollectibleType::COIN, &coinModel);
+    collectibles.setModel(CollectibleType::COIN_RARE, &coinModel);
+    collectibles.setModel(CollectibleType::FUEL, &fuelModel);
+    collectibles.setModel(CollectibleType::TURBO, &nitroModel);
+    
+    collectibles.init();
+    // initial spawn: place coins ahead of the car along its current forward direction
+    glm::vec3 initialForward = glm::vec3(std::cos(glm::radians(car.yaw)), 0.0f, std::sin(glm::radians(car.yaw)));
+    // initial spawn: fewer coins spread further ahead
+    collectibles.spawnAlongDirection(6, car.position, initialForward, &scene.getTerrain(), CollectibleType::COIN, 8.0f, 25.0f, 1.8f);
+
+    // Spawn control variables
+    glm::vec3 lastSpawnPos = car.position;
+    const float spawnMoveThreshold = 6.0f; // only spawn if player moved this far
+    const int maxSpawnBatch = 6;           // max coins to spawn at once
+    float lastSpawnTime = 0.0f;
+    const float spawnCooldown = 1.0f;     // seconds between spawn batches
+
+    // Main game loop: use chosen model
+    while (!glfwWindowShouldClose(window) && !gameOver)
+    {
+      float currentFrame = static_cast<float>(glfwGetTime());
+      deltaTime = currentFrame - lastFrame;
+      lastFrame = currentFrame;
+
+      Input::handleEscape(window);
+      Input::poll(window, controls);
+
+      // Only allow boost if turbo is available
+      if (controls.boost && !car.hasTurbo()) {
+      controls.boost = false;
+    }
 
     Physics::updateCar(car, deltaTime, controls, physicsWorld, &scene.getTerrain());
     Physics::updateCamera(car, camera);
@@ -156,7 +174,8 @@ int main()
             // Already added to score
             break;
           case CollectibleType::TURBO:
-            std::cout << "  Turbo boost activated! +" << item.value << std::endl;
+            car.addTurbo(static_cast<float>(item.value));
+            std::cout << "  Turbo collected! +" << item.value << "% (Now: " << car.getTurboPercent() << "%)" << std::endl;
             break;
           case CollectibleType::FUEL:
             car.addFuel(item.value);
@@ -166,17 +185,19 @@ int main()
       }
     }
     
+    // Update turbo usage (depletes when boost is active)
+    if (controls.boost && car.hasTurbo()) {
+      car.useTurbo(deltaTime);
+    }
+    
     // Update fuel depletion
     bool isMoving = (controls.throttle || controls.brake || controls.steer != 0);
     car.updateFuel(deltaTime, isMoving);
     
     // Check for game over
-    if (car.isOutOfFuel() && !gameOver) {
+    if (car.isOutOfFuel())
+    {
       gameOver = true;
-      std::cout << "\n========== GAME OVER ==========" << std::endl;
-      std::cout << "Out of fuel! Final Score: " << score << std::endl;
-      std::cout << "Press ESC to exit or close the window" << std::endl;
-      std::cout << "==============================\n" << std::endl;
     }
 
     // Controlled respawn: spawn coins as the player moves forward in their facing direction
@@ -208,13 +229,38 @@ int main()
       }
     }
 
-    collectibles.draw(ourShader, 0);
-    
-    // Render UI (fuel bar and score)
-    gameUI.render(car.getFuelPercent(), score);
+      collectibles.draw(ourShader, 0);
+      
+      // Render UI (fuel bar and turbo bar)
+      gameUI.render(car.getFuelPercent(), car.getTurboPercent());
 
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+      glfwSwapBuffers(window);
+      glfwPollEvents();
+    }
+    
+    // Game loop ended - check if game over
+    if (gameOver)
+    {
+      std::cout << "\n========== GAME OVER ==========" << std::endl;
+      std::cout << "Out of fuel! Final Score: " << score << std::endl;
+      std::cout << "Click 'Continue' to return to car selection or 'Exit' to quit" << std::endl;
+      std::cout << "==============================\n" << std::endl;
+      
+      // Show game over screen with interactive buttons
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      bool continueToMenu = scene.showGameOver(window, ourShader, gameUI, score, SCR_WIDTH, SCR_HEIGHT);
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      
+      if (!continueToMenu)
+      {
+        continueGame = false; // Exit main loop
+      }
+    }
+    else
+    {
+      // User exited during game
+      continueGame = false;
+    }
   }
 
   // Cleanup

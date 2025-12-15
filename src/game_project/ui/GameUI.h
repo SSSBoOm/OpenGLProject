@@ -14,7 +14,9 @@ public:
     ~GameUI();
     
     void init(unsigned int screenWidth, unsigned int screenHeight);
-    void render(float fuelPercent, int score);
+    void render(float fuelPercent, float turboPercent);
+    void renderGameOver(int finalScore, bool &continueButtonHovered, bool &exitButtonHovered);
+    bool isPointInRect(double mouseX, double mouseY, float rectX, float rectY, float rectW, float rectH);
     void cleanup();
     
     void setScreenSize(unsigned int width, unsigned int height);

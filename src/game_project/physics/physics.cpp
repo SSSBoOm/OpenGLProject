@@ -9,14 +9,14 @@ namespace
 {
   namespace CFG
   {
-    constexpr float ACCEL_FORCE = 2000.0f;
-    constexpr float BRAKE_FORCE = 3000.0f;
+    constexpr float ACCEL_FORCE = 4000.0f;
+    constexpr float BRAKE_FORCE = 2500.0f;
     constexpr float STEER_TORQUE = 300.0f;
     constexpr float MAX_SPEED = 32.0f;
-    constexpr float MAX_SPEED_BOOST = 128.0f;
-    constexpr float CAR_MASS = 1000.0f;
+    constexpr float MAX_SPEED_BOOST = 40.0f;
+    constexpr float CAR_MASS = 750.0f;
     constexpr float MAX_REVERSE = 6.0f;
-    constexpr float BOOST_FORCE_MULTIPLIER = 6.0f;
+    constexpr float BOOST_FORCE_MULTIPLIER = 2.5f;
   }
 }
 

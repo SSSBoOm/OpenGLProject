@@ -43,3 +43,18 @@ void Car::addFuel(float amount)
   fuel += amount;
   fuel = std::min(fuel, maxFuel);
 }
+
+void Car::addTurbo(float amount)
+{
+  turbo += amount;
+  turbo = std::min(turbo, maxTurbo);
+}
+
+void Car::useTurbo(float deltaTime)
+{
+  if (turbo > 0.0f)
+  {
+    turbo -= turboDepletionRate * deltaTime;
+    turbo = std::max(0.0f, turbo);
+  }
+}

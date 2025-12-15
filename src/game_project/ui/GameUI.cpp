@@ -78,10 +78,11 @@ void GameUI::renderQuad(float x, float y, float width, float height, const glm::
     glBindVertexArray(0);
 }
 
-void GameUI::render(float fuelPercent, int score)
+void GameUI::render(float fuelPercent, float turboPercent)
 {
-    // Clamp fuel percent to 0-100
+    // Clamp percentages to 0-100
     fuelPercent = glm::clamp(fuelPercent, 0.0f, 100.0f);
+    turboPercent = glm::clamp(turboPercent, 0.0f, 100.0f);
     
     // Disable depth test for UI rendering
     glDisable(GL_DEPTH_TEST);
@@ -119,43 +120,125 @@ void GameUI::render(float fuelPercent, int score)
     }
     renderQuad(fuelBarX + 4.0f, fuelBarY + 4.0f, fillWidth, barHeight - 8.0f, fuelColor);
     
-    // Render score display
-    const float scoreBarY = fuelBarY + barHeight + padding;
-    const float scoreBarHeight = 30.0f;
+    // Render turbo bar display
+    const float turboBarY = fuelBarY + barHeight + padding;
+    const float turboBarHeight = 25.0f;
     
-    // Score background
-    renderQuad(fuelBarX, scoreBarY, barWidth, scoreBarHeight, glm::vec3(0.1f, 0.1f, 0.15f));
+    // Turbo background (dark gray)
+    renderQuad(fuelBarX, turboBarY, barWidth, turboBarHeight, glm::vec3(0.2f, 0.2f, 0.2f));
     
-    // Score border (gold)
-    renderQuad(fuelBarX, scoreBarY, barWidth, borderThickness, glm::vec3(1.0f, 0.84f, 0.0f));
-    renderQuad(fuelBarX, scoreBarY + scoreBarHeight - borderThickness, barWidth, borderThickness, glm::vec3(1.0f, 0.84f, 0.0f));
-    renderQuad(fuelBarX, scoreBarY, borderThickness, scoreBarHeight, glm::vec3(1.0f, 0.84f, 0.0f));
-    renderQuad(fuelBarX + barWidth - borderThickness, scoreBarY, borderThickness, scoreBarHeight, glm::vec3(1.0f, 0.84f, 0.0f));
+    // Turbo border (light blue)
+    renderQuad(fuelBarX, turboBarY, barWidth, borderThickness, glm::vec3(0.3f, 0.7f, 1.0f));
+    renderQuad(fuelBarX, turboBarY + turboBarHeight - borderThickness, barWidth, borderThickness, glm::vec3(0.3f, 0.7f, 1.0f));
+    renderQuad(fuelBarX, turboBarY, borderThickness, turboBarHeight, glm::vec3(0.3f, 0.7f, 1.0f));
+    renderQuad(fuelBarX + barWidth - borderThickness, turboBarY, borderThickness, turboBarHeight, glm::vec3(0.3f, 0.7f, 1.0f));
     
-    // Simple score visualization with bars (each bar represents 10 points)
-    int scoreBars = glm::min(score / 10, 18); // Max 18 bars to fit in the width
-    float scoreBarWidth = (barWidth - 8.0f) / 18.0f;
-    for (int i = 0; i < scoreBars; ++i) {
-        renderQuad(fuelBarX + 4.0f + i * scoreBarWidth + i * 1.0f, 
-                  scoreBarY + 4.0f, 
-                  scoreBarWidth - 1.0f, 
-                  scoreBarHeight - 8.0f, 
-                  glm::vec3(1.0f, 0.84f, 0.0f));
-    }
+    // Render turbo bar fill (light blue)
+    float turboFillWidth = (barWidth - 8.0f) * (turboPercent / 100.0f);
+    renderQuad(fuelBarX + 4.0f, turboBarY + 4.0f, turboFillWidth, turboBarHeight - 8.0f, glm::vec3(0.4f, 0.8f, 1.0f));
     
     // Re-enable depth test
     glEnable(GL_DEPTH_TEST);
     
-    // Print fuel and score to console for debugging
-    static int lastPrintedScore = -1;
+    // Print fuel and turbo to console for debugging
+    static int lastPrintedTurbo = -1;
     static int lastPrintedFuel = -1;
     int fuelInt = static_cast<int>(fuelPercent);
-    if (score != lastPrintedScore || fuelInt != lastPrintedFuel) {
+    int turboInt = static_cast<int>(turboPercent);
+    if (turboInt != lastPrintedTurbo || fuelInt != lastPrintedFuel) {
         std::cout << "\rFuel: " << std::fixed << std::setprecision(1) << fuelPercent 
-                  << "%  |  Score: " << score << "     " << std::flush;
-        lastPrintedScore = score;
+                  << "%  |  Turbo: " << turboPercent << "%     " << std::flush;
+        lastPrintedTurbo = turboInt;
         lastPrintedFuel = fuelInt;
     }
+}
+
+void GameUI::renderGameOver(int finalScore, bool &continueButtonHovered, bool &exitButtonHovered)
+{
+    // Disable depth test for UI rendering
+    glDisable(GL_DEPTH_TEST);
+    
+    const float padding = 20.0f;
+    const float centerX = screenWidth / 2.0f;
+    const float centerY = screenHeight / 2.0f;
+    
+    // Semi-transparent dark overlay
+    renderQuad(0, 0, (float)screenWidth, (float)screenHeight, glm::vec3(0.0f, 0.0f, 0.0f));
+    
+    // Game Over title box
+    const float titleWidth = 400.0f;
+    const float titleHeight = 80.0f;
+    const float titleX = centerX - titleWidth / 2.0f;
+    const float titleY = centerY - 200.0f;
+    
+    // Title background (dark red)
+    renderQuad(titleX, titleY, titleWidth, titleHeight, glm::vec3(0.5f, 0.0f, 0.0f));
+    // Title border (bright red)
+    float borderThickness = 3.0f;
+    renderQuad(titleX, titleY, titleWidth, borderThickness, glm::vec3(1.0f, 0.0f, 0.0f));
+    renderQuad(titleX, titleY + titleHeight - borderThickness, titleWidth, borderThickness, glm::vec3(1.0f, 0.0f, 0.0f));
+    renderQuad(titleX, titleY, borderThickness, titleHeight, glm::vec3(1.0f, 0.0f, 0.0f));
+    renderQuad(titleX + titleWidth - borderThickness, titleY, borderThickness, titleHeight, glm::vec3(1.0f, 0.0f, 0.0f));
+    
+    // Score display box
+    const float scoreWidth = 300.0f;
+    const float scoreHeight = 60.0f;
+    const float scoreX = centerX - scoreWidth / 2.0f;
+    const float scoreY = titleY + titleHeight + 30.0f;
+    
+    // Score background (dark gray)
+    renderQuad(scoreX, scoreY, scoreWidth, scoreHeight, glm::vec3(0.15f, 0.15f, 0.2f));
+    // Score border (gold)
+    renderQuad(scoreX, scoreY, scoreWidth, borderThickness, glm::vec3(1.0f, 0.84f, 0.0f));
+    renderQuad(scoreX, scoreY + scoreHeight - borderThickness, scoreWidth, borderThickness, glm::vec3(1.0f, 0.84f, 0.0f));
+    renderQuad(scoreX, scoreY, borderThickness, scoreHeight, glm::vec3(1.0f, 0.84f, 0.0f));
+    renderQuad(scoreX + scoreWidth - borderThickness, scoreY, borderThickness, scoreHeight, glm::vec3(1.0f, 0.84f, 0.0f));
+    
+    // Score bars visualization
+    int scoreBars = glm::min(finalScore / 5, 28);
+    float scoreBarWidth = (scoreWidth - 16.0f) / 28.0f;
+    for (int i = 0; i < scoreBars; ++i) {
+        renderQuad(scoreX + 8.0f + i * scoreBarWidth + i * 1.0f, 
+                  scoreY + 8.0f, 
+                  scoreBarWidth - 1.0f, 
+                  scoreHeight - 16.0f, 
+                  glm::vec3(1.0f, 0.84f, 0.0f));
+    }
+    
+    // Continue button
+    const float buttonWidth = 250.0f;
+    const float buttonHeight = 60.0f;
+    const float continueButtonX = centerX - buttonWidth / 2.0f;
+    const float continueButtonY = scoreY + scoreHeight + 50.0f;
+    
+    glm::vec3 continueColor = continueButtonHovered ? glm::vec3(0.3f, 0.8f, 0.3f) : glm::vec3(0.2f, 0.6f, 0.2f);
+    renderQuad(continueButtonX, continueButtonY, buttonWidth, buttonHeight, continueColor);
+    // Button border (white)
+    renderQuad(continueButtonX, continueButtonY, buttonWidth, borderThickness, glm::vec3(1.0f, 1.0f, 1.0f));
+    renderQuad(continueButtonX, continueButtonY + buttonHeight - borderThickness, buttonWidth, borderThickness, glm::vec3(1.0f, 1.0f, 1.0f));
+    renderQuad(continueButtonX, continueButtonY, borderThickness, buttonHeight, glm::vec3(1.0f, 1.0f, 1.0f));
+    renderQuad(continueButtonX + buttonWidth - borderThickness, continueButtonY, borderThickness, buttonHeight, glm::vec3(1.0f, 1.0f, 1.0f));
+    
+    // Exit button
+    const float exitButtonX = centerX - buttonWidth / 2.0f;
+    const float exitButtonY = continueButtonY + buttonHeight + 20.0f;
+    
+    glm::vec3 exitColor = exitButtonHovered ? glm::vec3(0.8f, 0.3f, 0.3f) : glm::vec3(0.6f, 0.2f, 0.2f);
+    renderQuad(exitButtonX, exitButtonY, buttonWidth, buttonHeight, exitColor);
+    // Button border (white)
+    renderQuad(exitButtonX, exitButtonY, buttonWidth, borderThickness, glm::vec3(1.0f, 1.0f, 1.0f));
+    renderQuad(exitButtonX, exitButtonY + buttonHeight - borderThickness, buttonWidth, borderThickness, glm::vec3(1.0f, 1.0f, 1.0f));
+    renderQuad(exitButtonX, exitButtonY, borderThickness, buttonHeight, glm::vec3(1.0f, 1.0f, 1.0f));
+    renderQuad(exitButtonX + buttonWidth - borderThickness, exitButtonY, borderThickness, buttonHeight, glm::vec3(1.0f, 1.0f, 1.0f));
+    
+    // Re-enable depth test
+    glEnable(GL_DEPTH_TEST);
+}
+
+bool GameUI::isPointInRect(double mouseX, double mouseY, float rectX, float rectY, float rectW, float rectH)
+{
+    return mouseX >= rectX && mouseX <= rectX + rectW &&
+           mouseY >= rectY && mouseY <= rectY + rectH;
 }
 
 void GameUI::cleanup()

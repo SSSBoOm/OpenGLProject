@@ -23,6 +23,12 @@ public:
   float fuel = 100.0f;          // Current fuel percentage (0-100)
   float maxFuel = 100.0f;       // Maximum fuel capacity
   float fuelDepletionRate = 2.5f; // Fuel depleted per second while moving
+  
+  // Turbo system
+  float turbo = 0.0f;           // Current turbo percentage (0-100)
+  float maxTurbo = 100.0f;      // Maximum turbo capacity
+  float turboDepletionRate = 25.0f; // Turbo depleted per second when active
+  float turboGainPerCollect = 20.0f; // Turbo gained per nitro collectible
 
   // Bullet physics rigid body
   btRigidBody *rigidBody = nullptr;
@@ -35,6 +41,12 @@ public:
   
   // Add fuel with cap at maxFuel
   void addFuel(float amount);
+  
+  // Turbo system methods
+  void addTurbo(float amount);
+  void useTurbo(float deltaTime);
+  bool hasTurbo() const { return turbo > 0.0f; }
+  float getTurboPercent() const { return turbo; }
   
   // Check if out of fuel
   bool isOutOfFuel() const { return fuel <= 0.0f; }

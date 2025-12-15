@@ -8,6 +8,7 @@
 #include <stb_image.h>
 
 #include "../input/input.h"
+#include "../ui/GameUI.h"
 
 #include <iostream>
 
@@ -233,6 +234,103 @@ bool Scene::showMenu(GLFWwindow *window, Shader &shader, Controls &controls, int
     glBindVertexArray(groundVAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+  }
+
+  return !glfwWindowShouldClose(window);
+}
+
+bool Scene::showGameOver(GLFWwindow *window, Shader &shader, GameUI &gameUI, int finalScore, int scrWidth, int scrHeight)
+{
+  bool inGameOver = true;
+  double lastClickTime = 0.0;
+  const double clickDelay = 0.3;
+  
+  // Button dimensions (must match GameUI::renderGameOver)
+  const float centerX = scrWidth / 2.0f;
+  const float centerY = scrHeight / 2.0f;
+  const float buttonWidth = 250.0f;
+  const float buttonHeight = 60.0f;
+  const float titleHeight = 80.0f;
+  const float scoreHeight = 60.0f;
+  
+  const float titleY = centerY - 200.0f;
+  const float scoreY = titleY + titleHeight + 30.0f;
+  const float continueButtonX = centerX - buttonWidth / 2.0f;
+  const float continueButtonY = scoreY + scoreHeight + 50.0f;
+  const float exitButtonX = centerX - buttonWidth / 2.0f;
+  const float exitButtonY = continueButtonY + buttonHeight + 20.0f;
+  
+  glfwSetWindowTitle(window, "Game Over - Out of Fuel!");
+
+  while (inGameOver && !glfwWindowShouldClose(window))
+  {
+    double t = glfwGetTime();
+    
+    // Get mouse position
+    double mouseX, mouseY;
+    glfwGetCursorPos(window, &mouseX, &mouseY);
+    
+    // Check if mouse is hovering over buttons
+    bool continueHovered = gameUI.isPointInRect(mouseX, mouseY, continueButtonX, continueButtonY, buttonWidth, buttonHeight);
+    bool exitHovered = gameUI.isPointInRect(mouseX, mouseY, exitButtonX, exitButtonY, buttonWidth, buttonHeight);
+    
+    // Check for mouse click
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && (t - lastClickTime) > clickDelay)
+    {
+      if (continueHovered)
+      {
+        // Continue button clicked - restart game
+        lastClickTime = t;
+        inGameOver = false;
+        return true;
+      }
+      else if (exitHovered)
+      {
+        // Exit button clicked - quit game
+        lastClickTime = t;
+        glfwSetWindowShouldClose(window, true);
+        return false;
+      }
+    }
+    
+    // Keyboard shortcuts
+    if (t - lastClickTime > clickDelay)
+    {
+      if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+      {
+        inGameOver = false;
+        lastClickTime = t;
+        return true;
+      }
+      if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+      {
+        glfwSetWindowShouldClose(window, true);
+        return false;
+      }
+    }
+
+    // Render game over screen
+    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Render background
+    glDisable(GL_DEPTH_TEST);
+    shader.use();
+    shader.setMat4("model", glm::mat4(1.0f));
+    shader.setMat4("view", glm::mat4(1.0f));
+    shader.setMat4("projection", glm::mat4(1.0f));
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+    glBindVertexArray(bgVAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+    glEnable(GL_DEPTH_TEST);
+    
+    // Render game over UI with buttons
+    gameUI.renderGameOver(finalScore, continueHovered, exitHovered);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
