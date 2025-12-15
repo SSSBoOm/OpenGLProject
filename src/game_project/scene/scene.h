@@ -29,13 +29,15 @@ public:
 
   bool init(int scrWidth, int scrHeight);
 
-  bool showMenu(GLFWwindow *window, Shader &shader, Controls &controls, int &selectedIndex, int scrWidth, int scrHeight);
+  bool showMenu(GLFWwindow *window, Shader &shader, GameUI &gameUI, Controls &controls, int &selectedIndex, int scrWidth, int scrHeight);
 
   bool showGameOver(GLFWwindow *window, Shader &shader, GameUI &gameUI, int finalScore, int scrWidth, int scrHeight);
 
   void renderScene(Shader &shader, Camera &camera, Car &car, int selectedIndex, int scrWidth, int scrHeight);
 
   void cleanup();
+  
+  void createCircularPlatform();
 
   // Access the scene's terrain for physics sampling
   Terrain &getTerrain() { return terrain; }
@@ -49,6 +51,10 @@ private:
   unsigned int bgVAO = 0; 
   unsigned int bgVBO = 0; 
   unsigned int bgEBO = 0;
+  unsigned int platformVAO = 0;
+  unsigned int platformVBO = 0;
+  unsigned int platformEBO = 0;
+  int platformIndexCount = 0;
 
   std::vector<ModelInfo> modelInfos;
   std::vector<std::string> modelPaths;

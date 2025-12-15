@@ -138,6 +138,10 @@ bool Scene::init(int scrWidth, int scrHeight)
   }
 
   std::cerr << "Scene::init: models loaded = " << models.size() << std::endl;
+  
+  // Create circular platform
+  createCircularPlatform();
+  
   // initialize procedural terrain (width, depth, scale, heightScale)
   if (!terrain.init(160, 1600, 1.0f, 3.5f))
   {
@@ -146,34 +150,66 @@ bool Scene::init(int scrWidth, int scrHeight)
   return true;
 }
 
-bool Scene::showMenu(GLFWwindow *window, Shader &shader, Controls &controls, int &selectedIndex, int scrWidth, int scrHeight)
+bool Scene::showMenu(GLFWwindow *window, Shader &shader, GameUI &gameUI, Controls &controls, int &selectedIndex, int scrWidth, int scrHeight)
 {
   selectedIndex = 0;
   bool inMenu = true;
   double lastKeyTime = 0.0;
+  double lastClickTime = 0.0;
   const double keyDelay = 0.18; // seconds between selection changes
+  const double clickDelay = 0.3;
+  
+  bool prevButtonHovered = false;
+  bool nextButtonHovered = false;
 
   while (inMenu && !glfwWindowShouldClose(window))
   {
     Input::handleEscape(window);
     Input::poll(window, controls);
 
+    // Get mouse position
+    double mouseX, mouseY;
+    glfwGetCursorPos(window, &mouseX, &mouseY);
+    
+    // Button dimensions and positions
+    const float buttonSize = 80.0f;
+    const float buttonY = scrHeight / 2.0f - buttonSize / 2.0f;
+    const float prevButtonX = 50.0f;
+    const float nextButtonX = scrWidth - 50.0f - buttonSize;
+    
+    // Check hover states
+    prevButtonHovered = gameUI.isPointInRect(mouseX, mouseY, prevButtonX, buttonY, buttonSize, buttonSize);
+    nextButtonHovered = gameUI.isPointInRect(mouseX, mouseY, nextButtonX, buttonY, buttonSize, buttonSize);
+
     double t = glfwGetTime();
+    
+    // Mouse click handling
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && t - lastClickTime > clickDelay)
+    {
+      if (prevButtonHovered)
+      {
+        selectedIndex = (selectedIndex - 1 + static_cast<int>(models.size())) % static_cast<int>(models.size());
+        lastClickTime = t;
+      }
+      else if (nextButtonHovered)
+      {
+        selectedIndex = (selectedIndex + 1) % static_cast<int>(models.size());
+        lastClickTime = t;
+      }
+    }
+    
+    // Keyboard handling
     if (t - lastKeyTime > keyDelay)
     {
       if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
       {
         selectedIndex = (selectedIndex + 1) % static_cast<int>(models.size());
         lastKeyTime = t;
-        std::string title = std::string("Select Model - ") + modelInfos[selectedIndex].label;
-        glfwSetWindowTitle(window, title.c_str());
       }
       if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
       {
         selectedIndex = (selectedIndex - 1 + static_cast<int>(models.size())) % static_cast<int>(models.size());
         lastKeyTime = t;
-        std::string title = std::string("Select Model - ") + modelInfos[selectedIndex].label;
-        glfwSetWindowTitle(window, title.c_str());
       }
       if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
       {
@@ -211,7 +247,18 @@ bool Scene::showMenu(GLFWwindow *window, Shader &shader, Controls &controls, int
 
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
+    
+    // Render circular platform
+    glm::mat4 platformModel = glm::mat4(1.0f);
+    platformModel = glm::translate(platformModel, glm::vec3(0.0f, 0.01f, 0.0f));
+    shader.setMat4("model", platformModel);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, groundTexture);
+    glBindVertexArray(platformVAO);
+    glDrawElements(GL_TRIANGLES, platformIndexCount, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
 
+    // Render car model
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
     model = glm::scale(model, glm::vec3(0.8f));
@@ -226,14 +273,38 @@ bool Scene::showMenu(GLFWwindow *window, Shader &shader, Controls &controls, int
 
     models[selectedIndex].Draw(shader);
 
-    // ground
-    glm::mat4 groundModel = glm::mat4(1.0f);
-    shader.setMat4("model", groundModel);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, groundTexture);
-    glBindVertexArray(groundVAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
+    // Render UI elements (buttons and car name)
+    glDisable(GL_DEPTH_TEST);
+    
+    // Previous button ("<")
+    glm::vec3 prevColor = prevButtonHovered ? glm::vec3(0.3f, 0.6f, 0.9f) : glm::vec3(0.2f, 0.4f, 0.7f);
+    gameUI.renderQuad(prevButtonX, buttonY, buttonSize, buttonSize, prevColor);
+    float prevTextScale = 1.2f;
+    std::string prevText = "<";
+    float prevTextWidth = gameUI.getTextWidth(prevText, prevTextScale);
+    float prevTextX = prevButtonX + (buttonSize - prevTextWidth) / 2.0f;
+    float prevTextY = buttonY + buttonSize / 2.0f - (gameUI.getTextHeight(prevText, prevTextScale) / 4.0f);
+    gameUI.renderText(prevText, prevTextX, prevTextY, prevTextScale, glm::vec3(1.0f, 1.0f, 1.0f));
+    
+    // Next button (">")
+    glm::vec3 nextColor = nextButtonHovered ? glm::vec3(0.3f, 0.6f, 0.9f) : glm::vec3(0.2f, 0.4f, 0.7f);
+    gameUI.renderQuad(nextButtonX, buttonY, buttonSize, buttonSize, nextColor);
+    float nextTextScale = 1.2f;
+    std::string nextText = ">";
+    float nextTextWidth = gameUI.getTextWidth(nextText, nextTextScale);
+    float nextTextX = nextButtonX + (buttonSize - nextTextWidth) / 2.0f;
+    float nextTextY = buttonY + buttonSize / 2.0f - (gameUI.getTextHeight(nextText, nextTextScale) / 4.0f);
+    gameUI.renderText(nextText, nextTextX, nextTextY, nextTextScale, glm::vec3(1.0f, 1.0f, 1.0f));
+    
+    // Car model name display (centered at bottom)
+    std::string carName = modelInfos[selectedIndex].label;
+    float carNameScale = 0.8f;
+    float carNameWidth = gameUI.getTextWidth(carName, carNameScale);
+    float carNameX = (scrWidth - carNameWidth) / 2.0f;
+    float carNameY = scrHeight - 100.0f;
+    gameUI.renderText(carName, carNameX, carNameY, carNameScale, glm::vec3(1.0f, 0.84f, 0.0f));
+    
+    glEnable(GL_DEPTH_TEST);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -360,6 +431,64 @@ void Scene::renderScene(Shader &shader, Camera &camera, Car &car, int selectedIn
   terrain.render();
 }
 
+void Scene::createCircularPlatform()
+{
+  const int segments = 64;
+  const float radius = 2.5f;
+  std::vector<float> vertices;
+  std::vector<unsigned int> indices;
+  
+  // Center vertex
+  vertices.push_back(0.0f); vertices.push_back(0.0f); vertices.push_back(0.0f); // position
+  vertices.push_back(0.0f); vertices.push_back(1.0f); vertices.push_back(0.0f); // normal
+  vertices.push_back(0.5f); vertices.push_back(0.5f); // texcoord (center)
+  
+  // Circle vertices
+  for (int i = 0; i <= segments; ++i)
+  {
+    float angle = 2.0f * 3.14159265f * static_cast<float>(i) / static_cast<float>(segments);
+    float x = radius * cos(angle);
+    float z = radius * sin(angle);
+    
+    vertices.push_back(x); vertices.push_back(0.0f); vertices.push_back(z); // position
+    vertices.push_back(0.0f); vertices.push_back(1.0f); vertices.push_back(0.0f); // normal
+    vertices.push_back(0.5f + 0.5f * cos(angle)); vertices.push_back(0.5f + 0.5f * sin(angle)); // texcoord
+  }
+  
+  // Create triangle fan indices
+  for (int i = 1; i <= segments; ++i)
+  {
+    indices.push_back(0);
+    indices.push_back(i);
+    indices.push_back(i + 1);
+  }
+  
+  platformIndexCount = static_cast<int>(indices.size());
+  
+  glGenVertexArrays(1, &platformVAO);
+  glGenBuffers(1, &platformVBO);
+  glGenBuffers(1, &platformEBO);
+  
+  glBindVertexArray(platformVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, platformVBO);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+  
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+  
+  // position
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  // normal
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+  // texcoord
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  
+  glBindVertexArray(0);
+}
+
 void Scene::cleanup()
 {
   if (groundVAO)
@@ -378,5 +507,11 @@ void Scene::cleanup()
     glDeleteBuffers(1, &bgEBO);
   if (backgroundTexture)
     glDeleteTextures(1, &backgroundTexture);
+  if (platformVAO)
+    glDeleteVertexArrays(1, &platformVAO);
+  if (platformVBO)
+    glDeleteBuffers(1, &platformVBO);
+  if (platformEBO)
+    glDeleteBuffers(1, &platformEBO);
   terrain.cleanup();
 }

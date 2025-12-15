@@ -99,7 +99,11 @@ int main()
     car.turbo = 0.0f;
     
     int selectedIndex = 0;
-    bool started = scene.showMenu(window, ourShader, controls, selectedIndex, SCR_WIDTH, SCR_HEIGHT);
+    // Enable cursor for menu interaction
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    bool started = scene.showMenu(window, ourShader, gameUI, controls, selectedIndex, SCR_WIDTH, SCR_HEIGHT);
+    // Disable cursor for gameplay
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // If user closed window in menu, exit
     if (glfwWindowShouldClose(window) || !started)

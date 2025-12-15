@@ -31,6 +31,12 @@ public:
     
     void setScreenSize(unsigned int width, unsigned int height);
     
+    // Public rendering methods for external UI
+    void renderQuad(float x, float y, float width, float height, const glm::vec3& color);
+    void renderText(const std::string& text, float x, float y, float scale, const glm::vec3& color);
+    float getTextWidth(const std::string& text, float scale);
+    float getTextHeight(const std::string& text, float scale);
+    
 private:
     unsigned int screenWidth;
     unsigned int screenHeight;
@@ -43,11 +49,7 @@ private:
     glm::mat4 projection;
     std::map<char, Character> Characters;
     
-    void renderQuad(float x, float y, float width, float height, const glm::vec3& color);
     void renderIcon(unsigned int textureID, float x, float y, float size);
-    void renderText(const std::string& text, float x, float y, float scale, const glm::vec3& color);
-    float getTextWidth(const std::string& text, float scale);
-    float getTextHeight(const std::string& text, float scale);
     void initQuad();
     void initText();
     void loadFont(const std::string& fontPath, unsigned int fontSize);
