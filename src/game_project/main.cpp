@@ -87,6 +87,8 @@ int main()
   while (continueGame && !glfwWindowShouldClose(window))
   {
     int score = 0;
+    float distanceTraveled = 0.0f; // Track total distance for difficulty
+    glm::vec3 startPosition = glm::vec3(0.0f);
     // Reset game state
     gameOver = false;
     score = 0;
@@ -162,6 +164,17 @@ int main()
 
     Physics::updateCar(car, deltaTime, controls, physicsWorld, &scene.getTerrain());
     Physics::updateCamera(car, camera);
+    
+    // Update distance traveled (horizontal distance from start)
+    glm::vec3 horizontalDelta = car.position - startPosition;
+    horizontalDelta.y = 0.0f; // Only count horizontal distance
+    distanceTraveled = glm::length(horizontalDelta);
+    
+    // Progressive difficulty: terrain gets steeper over distance
+    // Difficulty increases by 0.1 every 100 meters, capped at 2.5x
+    float terrainDifficulty = 1.0f + (distanceTraveled / 100.0f) * 0.1f;
+    terrainDifficulty = std::min(terrainDifficulty, 2.5f);
+    scene.getTerrain().setDifficultyMultiplier(terrainDifficulty);
 
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -215,14 +228,24 @@ int main()
     // Controlled respawn: spawn coins as the player moves forward in their facing direction
     if (!gameOver) {
       float now = static_cast<float>(glfwGetTime());
+      
+      // Progressive difficulty: spawn less frequently and fewer items over distance
+      // Cooldown increases from 1.0s to 3.0s over 500m
+      float progressiveCooldown = 1.0f + (distanceTraveled / 500.0f) * 2.0f;
+      progressiveCooldown = std::min(progressiveCooldown, 3.0f);
+      
+      // Spawn count decreases from 6 to 2 over 500m
+      int progressiveSpawnCount = static_cast<int>(6 - (distanceTraveled / 500.0f) * 4.0f);
+      progressiveSpawnCount = std::max(progressiveSpawnCount, 2);
+      
       // compute how much the player moved forward along their facing direction since last spawn
       glm::vec3 delta = car.position - lastSpawnPos;
       glm::vec3 deltaXZ = glm::vec3(delta.x, 0.0f, delta.z);
       float forwardMoved = glm::dot(glm::normalize(glm::vec3(forwardDir.x, 0.0f, forwardDir.z)), glm::normalize(glm::length(deltaXZ) > 0.0001f ? deltaXZ : glm::vec3(0.0f)) ) * glm::length(deltaXZ);
       const float spawnForwardThreshold = 4.0f; // spawn when we've moved this far forward
 
-      // Only spawn when moving forward and respecting cooldown
-      if (forwardMoved > spawnForwardThreshold && (now - lastSpawnTime) > spawnCooldown) {
+      // Only spawn when moving forward and respecting progressive cooldown
+      if (forwardMoved > spawnForwardThreshold && (now - lastSpawnTime) > progressiveCooldown) {
         // Check whether there are already coins in the forward sector; if so, don't spawn more
         const float checkMinF = 4.0f;
         const float checkMaxF = 20.0f;
@@ -232,7 +255,7 @@ int main()
           const float spawnMaxF = 30.0f;
           const float spawnLat = 1.8f;
           
-          collectibles.spawnMixedGroup(maxSpawnBatch, car.position, forwardDir, &scene.getTerrain(), 
+          collectibles.spawnMixedGroup(progressiveSpawnCount, car.position, forwardDir, &scene.getTerrain(), 
                                       spawnMinF, spawnMaxF, spawnLat, 20, 20, 20);
           
           lastSpawnPos = car.position;

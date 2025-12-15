@@ -21,6 +21,9 @@ public:
 
   // Update terrain position for infinite generation based on player position
   void update(float playerX, float playerZ);
+  
+  // Set difficulty multiplier (1.0 = normal, higher = steeper terrain)
+  void setDifficultyMultiplier(float multiplier) { difficultyMultiplier = multiplier; }
 
   // Sample terrain height at world (x,z)
   float getHeight(float x, float z) const;
@@ -34,6 +37,7 @@ private:
   int depth = 0;
   float scale = 1.0f;
   float heightScale = 1.0f;
+  float difficultyMultiplier = 1.0f; // Increases terrain steepness over distance
 
   // Offset for infinite terrain generation
   float offsetX = 0.0f;

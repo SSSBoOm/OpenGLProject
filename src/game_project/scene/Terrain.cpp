@@ -35,7 +35,7 @@ bool Terrain::init(int w, int d, float s, float hscale)
     {
       float wx = (ix - width / 2) * scale;
       float wz = (iz - depth / 2) * scale;
-      float h = sampleNoise(wx, wz) * heightScale;
+      float h = sampleNoise(wx, wz) * heightScale * difficultyMultiplier;
       heights[iz * width + ix] = h;
     }
   }
@@ -233,7 +233,7 @@ void Terrain::update(float playerX, float playerZ)
       {
         float wx = (ix - width / 2) * scale + offsetX;
         float wz = (iz - depth / 2) * scale + offsetZ;
-        float h = sampleNoise(wx, wz) * heightScale;
+        float h = sampleNoise(wx, wz) * heightScale * difficultyMultiplier;
         heights[iz * width + ix] = h;
       }
     }
