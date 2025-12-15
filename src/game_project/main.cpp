@@ -95,8 +95,13 @@ int main()
     car.pitch = 0.0f;
     car.roll = 0.0f;
     car.velocity = 0.0f;
-    car.fuel = 10.0f;
+    car.fuel = 100.0f;
     car.turbo = 0.0f;
+    
+    // Initialize display angles to match physics angles
+    car.displayYaw = car.yaw;
+    car.displayPitch = car.pitch;
+    car.displayRoll = car.roll;
     
     int selectedIndex = 0;
     // Enable cursor for menu interaction
@@ -198,7 +203,10 @@ int main()
     bool isMoving = (controls.throttle || controls.brake || controls.steer != 0);
     car.updateFuel(deltaTime, isMoving);
     
-    // Check for game over
+    // Update display angles for smooth visual interpolation
+    car.updateDisplayAngles(deltaTime);
+    
+    // Check for game over conditions
     if (car.isOutOfFuel())
     {
       gameOver = true;

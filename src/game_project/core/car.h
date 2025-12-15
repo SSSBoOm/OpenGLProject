@@ -19,6 +19,11 @@ public:
   float roll = 0.0f;
   float velocity = 0.0f;
   
+  // Display angles for smooth visual interpolation
+  float displayYaw = -90.0f;
+  float displayPitch = 0.0f;
+  float displayRoll = 0.0f;
+  
   // Fuel system
   float fuel = 100.0f;          // Current fuel percentage (0-100)
   float maxFuel = 100.0f;       // Maximum fuel capacity
@@ -54,13 +59,24 @@ public:
   // Get fuel percentage (0-100)
   float getFuelPercent() const { return fuel; }
 
+  // Update display angles with smooth interpolation
+  void updateDisplayAngles(float deltaTime, float lerpSpeed = 10.0f)
+  {
+    // Smooth interpolation for visual orientation
+    float t = glm::clamp(lerpSpeed * deltaTime, 0.0f, 1.0f);
+    
+    displayYaw = displayYaw + (yaw - displayYaw) * t;
+    displayPitch = displayPitch + (pitch - displayPitch) * t;
+    displayRoll = displayRoll + (roll - displayRoll) * t;
+  }
+  
   glm::mat4 getModelMatrix() const
   {
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
-    model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::rotate(model, glm::radians(displayYaw), glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(displayPitch), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(displayRoll), glm::vec3(0.0f, 0.0f, 1.0f));
     return model;
   }
 };

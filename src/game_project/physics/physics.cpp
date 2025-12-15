@@ -171,6 +171,18 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
       // Calculate pitch (front-rear tilt) and roll (left-right tilt)
       float targetPitch = -std::atan2(avgFront - avgRear, WHEEL_BASE);
       float targetRoll = std::atan2(avgLeft - avgRight, TRACK_WIDTH);
+      
+      // Get current orientation for smooth interpolation
+      float currentPitch = glm::radians(car.pitch);
+      float currentRoll = glm::radians(car.roll);
+      
+      // Smooth interpolation factor
+      const float TERRAIN_ALIGN_SPEED = 6.0f;
+      float lerpFactor = glm::clamp(TERRAIN_ALIGN_SPEED * dt, 0.0f, 1.0f);
+      
+      // Interpolate to target orientation
+      float smoothPitch = currentPitch + (targetPitch - currentPitch) * lerpFactor;
+      float smoothRoll = currentRoll + (targetRoll - currentRoll) * lerpFactor;
 
       // Average of all four wheels for car center height
       float targetHeight = avgTerrainHeight + WHEEL_RADIUS;
@@ -185,9 +197,9 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
         // Set new position
         newTrans.setOrigin(btVector3(car.position.x, targetHeight, car.position.z));
 
-        // Create rotation quaternion from yaw, pitch, roll
+        // Create rotation quaternion from yaw, pitch, roll (using smoothed values)
         btQuaternion rotation;
-        rotation.setEulerZYX(targetRoll, glm::radians(car.yaw), targetPitch);
+        rotation.setEulerZYX(smoothRoll, glm::radians(car.yaw), smoothPitch);
         newTrans.setRotation(rotation);
 
         // Apply the transform
