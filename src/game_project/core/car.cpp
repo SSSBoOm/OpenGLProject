@@ -1,5 +1,6 @@
 #include "car.h"
 #include <btBulletDynamicsCommon.h>
+#include <algorithm>
 
 void Car::syncFromPhysics()
 {
@@ -25,4 +26,20 @@ void Car::syncFromPhysics()
     btVector3 vel = rigidBody->getLinearVelocity();
     velocity = vel.length();
   }
+}
+
+void Car::updateFuel(float deltaTime, bool isMoving)
+{
+  if (isMoving && fuel > 0.0f)
+  {
+    // Deplete fuel based on movement
+    fuel -= fuelDepletionRate * deltaTime;
+    fuel = std::max(0.0f, fuel);
+  }
+}
+
+void Car::addFuel(float amount)
+{
+  fuel += amount;
+  fuel = std::min(fuel, maxFuel);
 }

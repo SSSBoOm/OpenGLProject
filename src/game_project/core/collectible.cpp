@@ -67,7 +67,7 @@ int Collectibles::getDefaultValue(CollectibleType type)
         case CollectibleType::TURBO:
             return 0; // turbo boost amount
         case CollectibleType::FUEL:
-            return 0; // fuel refill amount
+            return 15; // fuel refill amount (15%)
         default:
             return 1;
     }

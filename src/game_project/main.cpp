@@ -24,6 +24,7 @@
 #include "physics/PhysicsWorld.h"
 #include "input/input.h"
 #include "scene/scene.h"
+#include "ui/GameUI.h"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -36,9 +37,11 @@ bool firstMouse = true;
 Controls controls;
 Car car;
 Collectibles collectibles;
+GameUI gameUI;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+bool gameOver = false;
 
 int main()
 {
@@ -75,6 +78,9 @@ int main()
   // Initialize scene resources (ground, models, textures)
   Scene scene;
   scene.init(SCR_WIDTH, SCR_HEIGHT);
+  
+  // Initialize UI
+  gameUI.init(SCR_WIDTH, SCR_HEIGHT);
 
   int selectedIndex = 0;
   bool started = scene.showMenu(window, ourShader, controls, selectedIndex, SCR_WIDTH, SCR_HEIGHT);
@@ -155,59 +161,78 @@ int main()
             // TODO: Apply turbo boost effect
             break;
           case CollectibleType::FUEL:
-            std::cout << "  Fuel refilled! +" << item.value << std::endl;
-            // TODO: Refill fuel
+            car.addFuel(item.value);
+            std::cout << "  Fuel refilled! +" << item.value << "% (Now: " << car.getFuelPercent() << "%)" << std::endl;
             break;
         }
       }
     }
+    
+    // Update fuel depletion
+    bool isMoving = (controls.throttle || controls.brake || controls.steer != 0);
+    car.updateFuel(deltaTime, isMoving);
+    
+    // Check for game over
+    if (car.isOutOfFuel() && !gameOver) {
+      gameOver = true;
+      std::cout << "\n========== GAME OVER ==========" << std::endl;
+      std::cout << "Out of fuel! Final Score: " << score << std::endl;
+      std::cout << "Press ESC to exit or close the window" << std::endl;
+      std::cout << "==============================\n" << std::endl;
+    }
 
     // Controlled respawn: spawn coins as the player moves forward in their facing direction
-    float now = static_cast<float>(glfwGetTime());
-    // compute how much the player moved forward along their facing direction since last spawn
-    glm::vec3 delta = car.position - lastSpawnPos;
-    glm::vec3 deltaXZ = glm::vec3(delta.x, 0.0f, delta.z);
-    float forwardMoved = glm::dot(glm::normalize(glm::vec3(forwardDir.x, 0.0f, forwardDir.z)), glm::normalize(glm::length(deltaXZ) > 0.0001f ? deltaXZ : glm::vec3(0.0f)) ) * glm::length(deltaXZ);
-    const float spawnForwardThreshold = 4.0f; // spawn when we've moved this far forward
+    if (!gameOver) {
+      float now = static_cast<float>(glfwGetTime());
+      // compute how much the player moved forward along their facing direction since last spawn
+      glm::vec3 delta = car.position - lastSpawnPos;
+      glm::vec3 deltaXZ = glm::vec3(delta.x, 0.0f, delta.z);
+      float forwardMoved = glm::dot(glm::normalize(glm::vec3(forwardDir.x, 0.0f, forwardDir.z)), glm::normalize(glm::length(deltaXZ) > 0.0001f ? deltaXZ : glm::vec3(0.0f)) ) * glm::length(deltaXZ);
+      const float spawnForwardThreshold = 4.0f; // spawn when we've moved this far forward
 
-    // Only spawn when moving forward and respecting cooldown
-    if (forwardMoved > spawnForwardThreshold && (now - lastSpawnTime) > spawnCooldown) {
-      // Check whether there are already coins in the forward sector; if so, don't spawn more
-      const float checkMinF = 4.0f;
-      const float checkMaxF = 20.0f;
-      const float checkLat = 2.5f;
-      if (!collectibles.hasItemsInDirection(car.position, forwardDir, checkMinF, checkMaxF, checkLat, 1, CollectibleType::COIN)) {
-        // spawn in an elongated strip ahead of the car so positions align with movement direction
-        // ensure coins spawn beyond immediate view by increasing minForward
-        const float spawnMinF = 8.0f;
-        const float spawnMaxF = 30.0f;
-        const float spawnLat = 1.8f;
-        
-        // Spawn regular coins
-        collectibles.spawnAlongDirection(maxSpawnBatch, car.position, forwardDir, &scene.getTerrain(), CollectibleType::COIN, spawnMinF, spawnMaxF, spawnLat);
-        
-        // 30% chance to spawn 1 rare coin
-        if ((std::rand() % 100) < 30) {
-          collectibles.spawnAlongDirection(1, car.position, forwardDir, &scene.getTerrain(), CollectibleType::COIN_RARE, spawnMinF, spawnMaxF, spawnLat);
+      // Only spawn when moving forward and respecting cooldown
+      if (forwardMoved > spawnForwardThreshold && (now - lastSpawnTime) > spawnCooldown) {
+        // Check whether there are already coins in the forward sector; if so, don't spawn more
+        const float checkMinF = 4.0f;
+        const float checkMaxF = 20.0f;
+        const float checkLat = 2.5f;
+        if (!collectibles.hasItemsInDirection(car.position, forwardDir, checkMinF, checkMaxF, checkLat, 1, CollectibleType::COIN)) {
+          // spawn in an elongated strip ahead of the car so positions align with movement direction
+          // ensure coins spawn beyond immediate view by increasing minForward
+          const float spawnMinF = 8.0f;
+          const float spawnMaxF = 30.0f;
+          const float spawnLat = 1.8f;
+          
+          // Spawn regular coins
+          collectibles.spawnAlongDirection(maxSpawnBatch, car.position, forwardDir, &scene.getTerrain(), CollectibleType::COIN, spawnMinF, spawnMaxF, spawnLat);
+          
+          // 30% chance to spawn 1 rare coin
+          if ((std::rand() % 100) < 30) {
+            collectibles.spawnAlongDirection(1, car.position, forwardDir, &scene.getTerrain(), CollectibleType::COIN_RARE, spawnMinF, spawnMaxF, spawnLat);
+          }
+          
+          // 10% chance to spawn 1 fuel
+          if ((std::rand() % 100) < 10) {
+            collectibles.spawnAlongDirection(1, car.position, forwardDir, &scene.getTerrain(), CollectibleType::FUEL, spawnMinF, spawnMaxF, spawnLat);
+          }
+          
+          lastSpawnPos = car.position;
+          lastSpawnTime = now;
         }
-        
-        // 10% chance to spawn 1 fuel
-        if ((std::rand() % 100) < 100) {
-          collectibles.spawnAlongDirection(1, car.position, forwardDir, &scene.getTerrain(), CollectibleType::FUEL, spawnMinF, spawnMaxF, spawnLat);
-        }
-        
-        lastSpawnPos = car.position;
-        lastSpawnTime = now;
       }
     }
 
     collectibles.draw(ourShader, 0);
+    
+    // Render UI (fuel bar and score)
+    gameUI.render(car.getFuelPercent(), score);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
 
   // Cleanup
+  gameUI.cleanup();
   scene.cleanup();
   glfwTerminate();
   return 0;
