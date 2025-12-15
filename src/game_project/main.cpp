@@ -231,8 +231,8 @@ int main()
 
       collectibles.draw(ourShader, 0);
       
-      // Render UI (fuel bar and turbo bar)
-      gameUI.render(car.getFuelPercent(), car.getTurboPercent());
+      // Render UI (fuel bar, turbo bar, and score)
+      gameUI.render(car.getFuelPercent(), car.getTurboPercent(), score);
 
       glfwSwapBuffers(window);
       glfwPollEvents();

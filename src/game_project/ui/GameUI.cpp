@@ -5,9 +5,11 @@
 #include <glad/glad.h>
 #include <learnopengl/shader_m.h>
 #include <learnopengl/filesystem.h>
+#include <stb_image.h>
 
 GameUI::GameUI() 
-    : screenWidth(800), screenHeight(600), quadVAO(0), quadVBO(0), uiShader(nullptr)
+    : screenWidth(800), screenHeight(600), quadVAO(0), quadVBO(0), uiShader(nullptr),
+      fuelIconTexture(0), turboIconTexture(0), coinIconTexture(0)
 {
 }
 
@@ -26,12 +28,18 @@ void GameUI::init(unsigned int width, unsigned int height)
     // Load UI shader
     uiShader = std::make_unique<Shader>("ui.vs", "ui.fs");
     textShader = std::make_unique<Shader>("text.vs", "text.fs");
+    iconShader = std::make_unique<Shader>("icon.vs", "icon.fs");
     
     // Setup orthographic projection
     projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f, -1.0f, 1.0f);
     
     // Load font
     loadFont(FileSystem::getPath("resources/fonts/Arial.ttf"), 48);
+    
+    // Load icons
+    fuelIconTexture = loadIcon(FileSystem::getPath("resources/images/fuel.png"));
+    turboIconTexture = loadIcon(FileSystem::getPath("resources/images/nitro.png"));
+    coinIconTexture = loadIcon(FileSystem::getPath("resources/images/coin.png"));
 }
 
 void GameUI::initQuad()
@@ -82,6 +90,43 @@ void GameUI::renderQuad(float x, float y, float width, float height, const glm::
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
+}
+
+void GameUI::renderIcon(unsigned int textureID, float x, float y, float size)
+{
+    if (!textureID || !textVAO || !iconShader) return;
+    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    
+    // Use icon shader for RGB texture rendering
+    iconShader->use();
+    iconShader->setMat4("projection", projection);
+    iconShader->setInt("icon", 0);
+    
+    // Create quad vertices with texture coordinates (flipped Y for correct orientation)
+    float vertices[6][4] = {
+        { x,        y + size, 0.0f, 1.0f },  // top-left
+        { x + size, y,        1.0f, 0.0f },  // bottom-right
+        { x,        y,        0.0f, 0.0f },  // bottom-left
+        
+        { x,        y + size, 0.0f, 1.0f },  // top-left
+        { x + size, y + size, 1.0f, 1.0f },  // top-right
+        { x + size, y,        1.0f, 0.0f }   // bottom-right
+    };
+    
+    glBindVertexArray(textVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_BLEND);
 }
 
 void GameUI::renderText(const std::string& text, float x, float y, float scale, const glm::vec3& color)
@@ -161,7 +206,7 @@ float GameUI::getTextHeight(const std::string& text, float scale)
     return Characters['H'].Size.y * scale;
 }
 
-void GameUI::render(float fuelPercent, float turboPercent)
+void GameUI::render(float fuelPercent, float turboPercent, int score)
 {
     // Clamp percentages to 0-100
     fuelPercent = glm::clamp(fuelPercent, 0.0f, 100.0f);
@@ -172,10 +217,14 @@ void GameUI::render(float fuelPercent, float turboPercent)
     
     // UI positions and sizes
     const float padding = 20.0f;
+    const float iconSize = 30.0f;
     const float barWidth = 200.0f;
     const float barHeight = 25.0f;
-    const float fuelBarX = padding;
+    const float fuelBarX = padding + iconSize + 10.0f; // Leave space for icon
     const float fuelBarY = padding;
+    
+    // Render fuel icon
+    renderIcon(fuelIconTexture, padding, fuelBarY - 2.5f, iconSize);
     
     // Render fuel bar background (dark gray)
     renderQuad(fuelBarX, fuelBarY, barWidth, barHeight, glm::vec3(0.2f, 0.2f, 0.2f));
@@ -207,6 +256,9 @@ void GameUI::render(float fuelPercent, float turboPercent)
     const float turboBarY = fuelBarY + barHeight + padding;
     const float turboBarHeight = 25.0f;
     
+    // Render turbo icon
+    renderIcon(turboIconTexture, padding, turboBarY - 2.5f, iconSize);
+    
     // Turbo background (dark gray)
     renderQuad(fuelBarX, turboBarY, barWidth, turboBarHeight, glm::vec3(0.2f, 0.2f, 0.2f));
     
@@ -219,6 +271,17 @@ void GameUI::render(float fuelPercent, float turboPercent)
     // Render turbo bar fill (light blue)
     float turboFillWidth = (barWidth - 8.0f) * (turboPercent / 100.0f);
     renderQuad(fuelBarX + 4.0f, turboBarY + 4.0f, turboFillWidth, turboBarHeight - 8.0f, glm::vec3(0.4f, 0.8f, 1.0f));
+    
+    // Score display
+    const float scoreY = turboBarY + turboBarHeight + padding;
+    
+    // Render coin icon
+    renderIcon(coinIconTexture, padding, scoreY - 2.5f, iconSize);
+    
+    // Render score text
+    std::string scoreText = "Score: " + std::to_string(score);
+    float scoreScale = 0.35f;
+    renderText(scoreText, padding + iconSize + 10.0f, scoreY + barHeight / 2.0f - (Characters['H'].Bearing.y * scoreScale / 4.0f), scoreScale, glm::vec3(1.0f, 0.84f, 0.0f));
     
     // Re-enable depth test
     glEnable(GL_DEPTH_TEST);
@@ -450,6 +513,36 @@ void GameUI::loadFont(const std::string& fontPath, unsigned int fontSize)
     std::cout << "Font loaded successfully: " << fontPath << std::endl;
 }
 
+unsigned int GameUI::loadIcon(const std::string& imagePath)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    
+    int width, height, nrChannels;
+    // Force load as RGBA to ensure color channels
+    unsigned char* data = stbi_load(imagePath.c_str(), &width, &height, &nrChannels, 4);
+    if (data)
+    {
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        
+        stbi_image_free(data);
+        std::cout << "Icon loaded successfully: " << imagePath << " (" << width << "x" << height << ")" << std::endl;
+    }
+    else
+    {
+        std::cout << "Failed to load icon: " << imagePath << std::endl;
+    }
+    
+    return textureID;
+}
+
 void GameUI::cleanup()
 {
     if (quadVAO != 0) {
@@ -467,5 +560,17 @@ void GameUI::cleanup()
     if (textVBO != 0) {
         glDeleteBuffers(1, &textVBO);
         textVBO = 0;
+    }
+    if (fuelIconTexture != 0) {
+        glDeleteTextures(1, &fuelIconTexture);
+        fuelIconTexture = 0;
+    }
+    if (turboIconTexture != 0) {
+        glDeleteTextures(1, &turboIconTexture);
+        turboIconTexture = 0;
+    }
+    if (coinIconTexture != 0) {
+        glDeleteTextures(1, &coinIconTexture);
+        coinIconTexture = 0;
     }
 }

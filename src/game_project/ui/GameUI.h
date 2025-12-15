@@ -24,7 +24,7 @@ public:
     ~GameUI();
     
     void init(unsigned int screenWidth, unsigned int screenHeight);
-    void render(float fuelPercent, float turboPercent);
+    void render(float fuelPercent, float turboPercent, int score);
     void renderGameOver(int finalScore, bool &continueButtonHovered, bool &exitButtonHovered);
     bool isPointInRect(double mouseX, double mouseY, float rectX, float rectY, float rectW, float rectH);
     void cleanup();
@@ -36,18 +36,22 @@ private:
     unsigned int screenHeight;
     unsigned int quadVAO, quadVBO;
     unsigned int textVAO, textVBO;
+    unsigned int fuelIconTexture, turboIconTexture, coinIconTexture;
     std::unique_ptr<Shader> uiShader;
     std::unique_ptr<Shader> textShader;
+    std::unique_ptr<Shader> iconShader;
     glm::mat4 projection;
     std::map<char, Character> Characters;
     
     void renderQuad(float x, float y, float width, float height, const glm::vec3& color);
+    void renderIcon(unsigned int textureID, float x, float y, float size);
     void renderText(const std::string& text, float x, float y, float scale, const glm::vec3& color);
     float getTextWidth(const std::string& text, float scale);
     float getTextHeight(const std::string& text, float scale);
     void initQuad();
     void initText();
     void loadFont(const std::string& fontPath, unsigned int fontSize);
+    unsigned int loadIcon(const std::string& imagePath);
 };
 
 #endif
