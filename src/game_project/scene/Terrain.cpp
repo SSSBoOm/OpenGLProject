@@ -9,23 +9,92 @@
 Terrain::Terrain() {}
 Terrain::~Terrain() { cleanup(); }
 
-static float sampleNoise(float x, float z)
+static float sampleNoise(float x, float z, unsigned int seed)
 {
-  // Smooth random-looking terrain using multiple octaves of sine waves
+  // Use seed to create unique phase offsets and select equation pattern
+  float seedOffset1 = (seed % 1000) * 0.01f;
+  float seedOffset2 = ((seed / 1000) % 1000) * 0.01f;
+  float seedOffset3 = ((seed / 1000000) % 1000) * 0.01f;
+  float seedOffset4 = ((seed / 1000000000) % 1000) * 0.01f;
+
+  // Select terrain pattern based on seed
+  int pattern = seed % 8;
+
   float v = 0.0f;
-  v += 1.0f * std::sin(z * 0.05f) * std::cos(x * 0.03f);
-  v += 0.5f * std::sin(z * 0.12f + 1.7f) * std::cos(x * 0.08f + 2.3f);
-  v += 0.25f * std::sin(z * 0.23f + 3.1f) * std::cos(x * 0.15f + 4.2f);
-  v += 0.125f * std::sin(z * 0.41f + 5.5f) * std::cos(x * 0.28f + 1.9f);
+
+  switch (pattern)
+  {
+  case 0: // Classic rolling hills
+    v += 1.0f * std::sin(z * 0.05f + seedOffset1) * std::cos(x * 0.03f + seedOffset1);
+    v += 0.5f * std::sin(z * 0.12f + seedOffset2) * std::cos(x * 0.08f + seedOffset2);
+    v += 0.25f * std::sin(z * 0.23f + seedOffset3) * std::cos(x * 0.15f + seedOffset3);
+    v += 0.125f * std::sin(z * 0.41f + seedOffset4) * std::cos(x * 0.28f + seedOffset4);
+    break;
+
+  case 1: // Sharp ridges
+    v += 1.2f * std::sin(x * 0.08f + seedOffset1) * std::sin(z * 0.08f + seedOffset2);
+    v += 0.6f * std::cos(x * 0.15f + seedOffset3) * std::cos(z * 0.15f + seedOffset4);
+    v += 0.3f * std::sin((x + z) * 0.25f + seedOffset1);
+    v += 0.15f * std::cos((x - z) * 0.35f + seedOffset2);
+    break;
+
+  case 2: // Wavy dunes
+    v += 1.0f * std::sin(x * 0.06f + seedOffset1);
+    v += 0.8f * std::cos(z * 0.04f + seedOffset2);
+    v += 0.4f * std::sin((x + z) * 0.1f + seedOffset3);
+    v += 0.2f * std::cos((x * 2.0f - z) * 0.12f + seedOffset4);
+    break;
+
+  case 3: // Diagonal patterns
+    v += 1.0f * std::sin((x + z) * 0.07f + seedOffset1) * std::cos((x - z) * 0.05f + seedOffset2);
+    v += 0.5f * std::sin((x + z) * 0.15f + seedOffset3) * std::cos((x - z) * 0.12f + seedOffset4);
+    v += 0.25f * std::cos(x * 0.2f + seedOffset1) * std::sin(z * 0.18f + seedOffset2);
+    break;
+
+  case 4: // Circular formations
+  {
+    float r = std::sqrt(x * x + z * z);
+    v += 1.0f * std::sin(r * 0.05f + seedOffset1);
+    v += 0.5f * std::cos(r * 0.1f + seedOffset2);
+    v += 0.3f * std::sin(r * 0.2f + seedOffset3) * std::cos(std::atan2(z, x) * 3.0f + seedOffset4);
+    v += 0.2f * std::cos(r * 0.3f + seedOffset1);
+    break;
+  }
+
+  case 5: // Complex fractal-like
+    v += 1.0f * std::sin(x * 0.04f + seedOffset1) * std::cos(z * 0.06f + seedOffset2);
+    v += 0.6f * std::sin(x * 0.11f + seedOffset3) * std::cos(z * 0.09f + seedOffset4);
+    v += 0.35f * std::sin(x * 0.21f + seedOffset1) * std::cos(z * 0.19f + seedOffset2);
+    v += 0.2f * std::sin(x * 0.37f + seedOffset3) * std::cos(z * 0.33f + seedOffset4);
+    v += 0.1f * std::sin(x * 0.52f + seedOffset1) * std::cos(z * 0.48f + seedOffset2);
+    break;
+
+  case 6: // Turbulent mix
+    v += 1.1f * (std::sin(x * 0.06f + seedOffset1) + std::cos(z * 0.05f + seedOffset2)) * 0.5f;
+    v += 0.55f * (std::sin(x * 0.13f + seedOffset3) + std::sin(z * 0.11f + seedOffset4)) * 0.5f;
+    v += 0.3f * std::sin((x + z) * 0.18f + seedOffset1) * std::cos((x - z) * 0.16f + seedOffset2);
+    v += 0.15f * (std::cos(x * 0.28f + seedOffset3) + std::cos(z * 0.31f + seedOffset4)) * 0.5f;
+    break;
+
+  case 7: // Mountain peaks
+    v += 1.3f * std::sin(x * 0.03f + seedOffset1) * std::sin(z * 0.04f + seedOffset2);
+    v += 0.7f * std::cos(x * 0.09f + seedOffset3) * std::sin(z * 0.07f + seedOffset4);
+    v += 0.4f * std::sin(x * 0.17f + seedOffset1) * std::cos(z * 0.14f + seedOffset2);
+    v += 0.2f * (std::sin(x * 0.31f + seedOffset3) + std::cos(z * 0.27f + seedOffset4)) * 0.5f;
+    v += 0.1f * std::sin((x * z) * 0.002f + seedOffset1);
+    break;
+  }
+
   return v;
 }
 
-bool Terrain::init(int w, int d, float s, float hscale)
+bool Terrain::init(int w, int d, float s, float hscale, unsigned int seed)
 {
   width = w;
   depth = d;
   scale = s;
   heightScale = hscale;
+  terrainSeed = seed;
 
   heights.assign(width * depth, 0.0f);
 
@@ -35,7 +104,7 @@ bool Terrain::init(int w, int d, float s, float hscale)
     {
       float wx = (ix - width / 2) * scale;
       float wz = (iz - depth / 2) * scale;
-      float h = sampleNoise(wx, wz) * heightScale * difficultyMultiplier;
+      float h = sampleNoise(wx, wz, terrainSeed) * heightScale * difficultyMultiplier;
       heights[iz * width + ix] = h;
     }
   }
@@ -233,7 +302,7 @@ void Terrain::update(float playerX, float playerZ)
       {
         float wx = (ix - width / 2) * scale + offsetX;
         float wz = (iz - depth / 2) * scale + offsetZ;
-        float h = sampleNoise(wx, wz) * heightScale * difficultyMultiplier;
+        float h = sampleNoise(wx, wz, terrainSeed) * heightScale * difficultyMultiplier;
         heights[iz * width + ix] = h;
       }
     }

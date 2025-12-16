@@ -10,6 +10,8 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <ctime>
+#include <random>
 
 #include <learnopengl/filesystem.h>
 #include <learnopengl/shader_m.h>
@@ -75,15 +77,20 @@ int main()
   Shader ourShader("1.model_loading.vs", "1.model_loading.fs");
   stbi_set_flip_vertically_on_load(false);
 
+  // Generate a random seed for terrain generation
+  std::random_device rd;
+  unsigned int terrainSeed = rd();
+  std::cout << "Generated terrain seed: " << terrainSeed << std::endl;
+
   // Initialize scene resources (ground, models, textures)
   Scene scene;
-  scene.init(SCR_WIDTH, SCR_HEIGHT);
-  
+  scene.init(SCR_WIDTH, SCR_HEIGHT, terrainSeed);
+
   // Initialize UI
   gameUI.init(SCR_WIDTH, SCR_HEIGHT);
 
   bool continueGame = true;
-  
+
   while (continueGame && !glfwWindowShouldClose(window))
   {
     int score = 0;
@@ -99,12 +106,12 @@ int main()
     car.velocity = 0.0f;
     car.fuel = 100.0f;
     car.turbo = 0.0f;
-    
+
     // Initialize display angles to match physics angles
     car.displayYaw = car.yaw;
     car.displayPitch = car.pitch;
     car.displayRoll = car.roll;
-    
+
     int selectedIndex = 0;
     // Enable cursor for menu interaction
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -127,13 +134,13 @@ int main()
     Model coinModel(FileSystem::getPath("resources/objects/coin/Coin.obj"));
     Model fuelModel(FileSystem::getPath("resources/objects/fuel/fuel.obj"));
     Model nitroModel(FileSystem::getPath("resources/objects/nitro/nitro.obj"));
-    
+
     collectibles = Collectibles(); // Reset collectibles
     collectibles.setModel(CollectibleType::COIN, &coinModel);
     collectibles.setModel(CollectibleType::COIN_RARE, &coinModel);
     collectibles.setModel(CollectibleType::FUEL, &fuelModel);
     collectibles.setModel(CollectibleType::TURBO, &nitroModel);
-    
+
     collectibles.init();
     // initial spawn: place coins ahead of the car along its current forward direction
     glm::vec3 initialForward = glm::vec3(std::cos(glm::radians(car.yaw)), 0.0f, std::sin(glm::radians(car.yaw)));
@@ -145,7 +152,7 @@ int main()
     const float spawnMoveThreshold = 6.0f; // only spawn if player moved this far
     const int maxSpawnBatch = 6;           // max coins to spawn at once
     float lastSpawnTime = 0.0f;
-    const float spawnCooldown = 1.0f;     // seconds between spawn batches
+    const float spawnCooldown = 1.0f; // seconds between spawn batches
 
     // Main game loop: use chosen model
     while (!glfwWindowShouldClose(window) && !gameOver)
@@ -158,39 +165,43 @@ int main()
       Input::poll(window, controls);
 
       // Only allow boost if turbo is available
-      if (controls.boost && !car.hasTurbo()) {
-      controls.boost = false;
-    }
+      if (controls.boost && !car.hasTurbo())
+      {
+        controls.boost = false;
+      }
 
-    Physics::updateCar(car, deltaTime, controls, physicsWorld, &scene.getTerrain());
-    Physics::updateCamera(car, camera);
-    
-    // Update distance traveled (horizontal distance from start)
-    glm::vec3 horizontalDelta = car.position - startPosition;
-    horizontalDelta.y = 0.0f; // Only count horizontal distance
-    distanceTraveled = glm::length(horizontalDelta);
-    
-    // Progressive difficulty: terrain gets steeper over distance
-    // Difficulty increases by 0.1 every 100 meters, capped at 2.5x
-    float terrainDifficulty = 1.0f + (distanceTraveled / 100.0f) * 0.1f;
-    terrainDifficulty = std::min(terrainDifficulty, 2.5f);
-    scene.getTerrain().setDifficultyMultiplier(terrainDifficulty);
+      Physics::updateCar(car, deltaTime, controls, physicsWorld, &scene.getTerrain());
+      Physics::updateCamera(car, camera);
 
-    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      // Update distance traveled (horizontal distance from start)
+      glm::vec3 horizontalDelta = car.position - startPosition;
+      horizontalDelta.y = 0.0f; // Only count horizontal distance
+      distanceTraveled = glm::length(horizontalDelta);
 
-    scene.renderScene(ourShader, camera, car, selectedIndex, SCR_WIDTH, SCR_HEIGHT);
+      // Progressive difficulty: terrain gets steeper over distance
+      // Difficulty increases by 0.1 every 100 meters, capped at 2.5x
+      float terrainDifficulty = 1.0f + (distanceTraveled / 100.0f) * 0.1f;
+      terrainDifficulty = std::min(terrainDifficulty, 2.5f);
+      scene.getTerrain().setDifficultyMultiplier(terrainDifficulty);
 
-    glm::vec3 forwardDir = glm::vec3(std::cos(glm::radians(car.yaw)), 0.0f, std::sin(glm::radians(car.yaw)));
-    // Update collectible collection
-    std::vector<CollectibleItem> collected;
-    int newly = collectibles.updateCollect(car.position, 1.0f, forwardDir, car.velocity, collected);
-    if (newly > 0) {
-      score += newly;
-      std::cout << "Collected " << collected.size() << " items. Remaining: " << collectibles.remaining() << "  Total Score: " << score << std::endl;
-      // Handle different item types
-      for (const auto& item : collected) {
-        switch (item.type) {
+      glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+      scene.renderScene(ourShader, camera, car, selectedIndex, SCR_WIDTH, SCR_HEIGHT);
+
+      glm::vec3 forwardDir = glm::vec3(std::cos(glm::radians(car.yaw)), 0.0f, std::sin(glm::radians(car.yaw)));
+      // Update collectible collection
+      std::vector<CollectibleItem> collected;
+      int newly = collectibles.updateCollect(car.position, 1.0f, forwardDir, car.velocity, collected);
+      if (newly > 0)
+      {
+        score += newly;
+        std::cout << "Collected " << collected.size() << " items. Remaining: " << collectibles.remaining() << "  Total Score: " << score << std::endl;
+        // Handle different item types
+        for (const auto &item : collected)
+        {
+          switch (item.type)
+          {
           case CollectibleType::COIN:
           case CollectibleType::COIN_RARE:
             // Already added to score
@@ -203,89 +214,94 @@ int main()
             car.addFuel(item.value);
             std::cout << "  Fuel refilled! +" << item.value << "% (Now: " << car.getFuelPercent() << "%)" << std::endl;
             break;
+          }
         }
       }
-    }
-    
-    // Update turbo usage (depletes when boost is active)
-    if (controls.boost && car.hasTurbo()) {
-      car.useTurbo(deltaTime);
-    }
-    
-    // Update fuel depletion
-    bool isMoving = (controls.throttle || controls.brake || controls.steer != 0);
-    car.updateFuel(deltaTime, isMoving);
-    
-    // Update display angles for smooth visual interpolation
-    car.updateDisplayAngles(deltaTime);
-    
-    // Check for game over conditions
-    if (car.isOutOfFuel())
-    {
-      gameOver = true;
-    }
 
-    // Controlled respawn: spawn coins as the player moves forward in their facing direction
-    if (!gameOver) {
-      float now = static_cast<float>(glfwGetTime());
-      
-      // Progressive difficulty: spawn less frequently and fewer items over distance
-      // Cooldown increases from 1.0s to 3.0s over 500m
-      float progressiveCooldown = 1.0f + (distanceTraveled / 500.0f) * 2.0f;
-      progressiveCooldown = std::min(progressiveCooldown, 3.0f);
-      
-      // Spawn count decreases from 6 to 2 over 500m
-      int progressiveSpawnCount = static_cast<int>(6 - (distanceTraveled / 500.0f) * 4.0f);
-      progressiveSpawnCount = std::max(progressiveSpawnCount, 2);
-      
-      // compute how much the player moved forward along their facing direction since last spawn
-      glm::vec3 delta = car.position - lastSpawnPos;
-      glm::vec3 deltaXZ = glm::vec3(delta.x, 0.0f, delta.z);
-      float forwardMoved = glm::dot(glm::normalize(glm::vec3(forwardDir.x, 0.0f, forwardDir.z)), glm::normalize(glm::length(deltaXZ) > 0.0001f ? deltaXZ : glm::vec3(0.0f)) ) * glm::length(deltaXZ);
-      const float spawnForwardThreshold = 4.0f; // spawn when we've moved this far forward
+      // Update turbo usage (depletes when boost is active)
+      if (controls.boost && car.hasTurbo())
+      {
+        car.useTurbo(deltaTime);
+      }
 
-      // Only spawn when moving forward and respecting progressive cooldown
-      if (forwardMoved > spawnForwardThreshold && (now - lastSpawnTime) > progressiveCooldown) {
-        // Check whether there are already coins in the forward sector; if so, don't spawn more
-        const float checkMinF = 4.0f;
-        const float checkMaxF = 20.0f;
-        const float checkLat = 2.5f;
-        if (!collectibles.hasItemsInDirection(car.position, forwardDir, checkMinF, checkMaxF, checkLat, 1, CollectibleType::COIN)) {
-          const float spawnMinF = 8.0f;
-          const float spawnMaxF = 30.0f;
-          const float spawnLat = 1.8f;
-          
-          collectibles.spawnMixedGroup(progressiveSpawnCount, car.position, forwardDir, &scene.getTerrain(), 
-                                      spawnMinF, spawnMaxF, spawnLat, 20, 20, 20);
-          
-          lastSpawnPos = car.position;
-          lastSpawnTime = now;
+      // Update fuel depletion
+      bool isMoving = (controls.throttle || controls.brake || controls.steer != 0);
+      car.updateFuel(deltaTime, isMoving);
+
+      // Update display angles for smooth visual interpolation
+      car.updateDisplayAngles(deltaTime);
+
+      // Check for game over conditions
+      if (car.isOutOfFuel())
+      {
+        gameOver = true;
+      }
+
+      // Controlled respawn: spawn coins as the player moves forward in their facing direction
+      if (!gameOver)
+      {
+        float now = static_cast<float>(glfwGetTime());
+
+        // Progressive difficulty: spawn less frequently and fewer items over distance
+        // Cooldown increases from 1.0s to 3.0s over 500m
+        float progressiveCooldown = 1.0f + (distanceTraveled / 500.0f) * 2.0f;
+        progressiveCooldown = std::min(progressiveCooldown, 3.0f);
+
+        // Spawn count decreases from 6 to 2 over 500m
+        int progressiveSpawnCount = static_cast<int>(6 - (distanceTraveled / 500.0f) * 4.0f);
+        progressiveSpawnCount = std::max(progressiveSpawnCount, 2);
+
+        // compute how much the player moved forward along their facing direction since last spawn
+        glm::vec3 delta = car.position - lastSpawnPos;
+        glm::vec3 deltaXZ = glm::vec3(delta.x, 0.0f, delta.z);
+        float forwardMoved = glm::dot(glm::normalize(glm::vec3(forwardDir.x, 0.0f, forwardDir.z)), glm::normalize(glm::length(deltaXZ) > 0.0001f ? deltaXZ : glm::vec3(0.0f))) * glm::length(deltaXZ);
+        const float spawnForwardThreshold = 4.0f; // spawn when we've moved this far forward
+
+        // Only spawn when moving forward and respecting progressive cooldown
+        if (forwardMoved > spawnForwardThreshold && (now - lastSpawnTime) > progressiveCooldown)
+        {
+          // Check whether there are already coins in the forward sector; if so, don't spawn more
+          const float checkMinF = 4.0f;
+          const float checkMaxF = 20.0f;
+          const float checkLat = 2.5f;
+          if (!collectibles.hasItemsInDirection(car.position, forwardDir, checkMinF, checkMaxF, checkLat, 1, CollectibleType::COIN))
+          {
+            const float spawnMinF = 8.0f;
+            const float spawnMaxF = 30.0f;
+            const float spawnLat = 1.8f;
+
+            collectibles.spawnMixedGroup(progressiveSpawnCount, car.position, forwardDir, &scene.getTerrain(),
+                                         spawnMinF, spawnMaxF, spawnLat, 20, 20, 20);
+
+            lastSpawnPos = car.position;
+            lastSpawnTime = now;
+          }
         }
       }
-    }
 
       collectibles.draw(ourShader, 0);
-      
+
       // Render UI (fuel bar, turbo bar, and score)
       gameUI.render(car.getFuelPercent(), car.getTurboPercent(), score);
 
       glfwSwapBuffers(window);
       glfwPollEvents();
     }
-    
+
     // Game loop ended - check if game over
     if (gameOver)
     {
       std::cout << "\n========== GAME OVER ==========" << std::endl;
       std::cout << "Out of fuel! Final Score: " << score << std::endl;
       std::cout << "Click 'Continue' to return to car selection or 'Exit' to quit" << std::endl;
-      std::cout << "==============================\n" << std::endl;
-      
+      std::cout << "==============================\n"
+                << std::endl;
+
       // Show game over screen with interactive buttons
       glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
       bool continueToMenu = scene.showGameOver(window, ourShader, gameUI, score, SCR_WIDTH, SCR_HEIGHT);
       glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      
+
       if (!continueToMenu)
       {
         continueGame = false; // Exit main loop
