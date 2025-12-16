@@ -2,12 +2,9 @@
 in vec2 TexCoords;
 out vec4 FragColor;
 
-uniform sampler2D iconTexture;
-uniform vec3 tintColor;
-uniform float alpha;
+uniform sampler2D icon;
 
 void main()
 {
-    vec4 texColor = texture(iconTexture, TexCoords);
-    FragColor = vec4(texColor.rgb * tintColor, texColor.a * alpha);
+    FragColor = texture(icon, TexCoords);
 }
