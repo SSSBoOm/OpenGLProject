@@ -9,6 +9,39 @@
 Terrain::Terrain() {}
 Terrain::~Terrain() { cleanup(); }
 
+void Terrain::smoothHeights(int iterations)
+{
+  if (width < 2 || depth < 2)
+    return;
+
+  std::vector<float> smoothed = heights;
+
+  for (int iter = 0; iter < iterations; ++iter)
+  {
+    for (int iz = 1; iz < depth - 1; ++iz)
+    {
+      for (int ix = 1; ix < width - 1; ++ix)
+      {
+        // Apply 3x3 box blur
+        float sum = 0.0f;
+        int count = 0;
+
+        for (int dz = -1; dz <= 1; ++dz)
+        {
+          for (int dx = -1; dx <= 1; ++dx)
+          {
+            sum += heights[(iz + dz) * width + (ix + dx)];
+            count++;
+          }
+        }
+
+        smoothed[iz * width + ix] = sum / count;
+      }
+    }
+    heights = smoothed;
+  }
+}
+
 static float sampleNoise(float x, float z, unsigned int seed)
 {
   // Use seed to create unique phase offsets and select equation pattern
@@ -25,63 +58,62 @@ static float sampleNoise(float x, float z, unsigned int seed)
   switch (pattern)
   {
   case 0: // Classic rolling hills
-    v += 1.0f * std::sin(z * 0.05f + seedOffset1) * std::cos(x * 0.03f + seedOffset1);
-    v += 0.5f * std::sin(z * 0.12f + seedOffset2) * std::cos(x * 0.08f + seedOffset2);
-    v += 0.25f * std::sin(z * 0.23f + seedOffset3) * std::cos(x * 0.15f + seedOffset3);
-    v += 0.125f * std::sin(z * 0.41f + seedOffset4) * std::cos(x * 0.28f + seedOffset4);
+    v += 1.0f * std::sin(z * 0.05f + seedOffset1);
+    v += 0.5f * std::sin(z * 0.12f + seedOffset2);
+    v += 0.25f * std::sin(z * 0.23f + seedOffset3);
+    v += 0.125f * std::sin(z * 0.41f + seedOffset4);
     break;
 
   case 1: // Sharp ridges
-    v += 1.2f * std::sin(x * 0.08f + seedOffset1) * std::sin(z * 0.08f + seedOffset2);
-    v += 0.6f * std::cos(x * 0.15f + seedOffset3) * std::cos(z * 0.15f + seedOffset4);
-    v += 0.3f * std::sin((x + z) * 0.25f + seedOffset1);
-    v += 0.15f * std::cos((x - z) * 0.35f + seedOffset2);
+    v += 1.2f * std::sin(z * 0.08f + seedOffset2);
+    v += 0.6f * std::cos(z * 0.15f + seedOffset4);
+    v += 0.3f * std::sin(z * 0.25f + seedOffset1);
+    v += 0.15f * std::cos(z * 0.35f + seedOffset2);
     break;
 
   case 2: // Wavy dunes
-    v += 1.0f * std::sin(x * 0.06f + seedOffset1);
+    v += 1.0f * std::sin(z * 0.06f + seedOffset1);
     v += 0.8f * std::cos(z * 0.04f + seedOffset2);
-    v += 0.4f * std::sin((x + z) * 0.1f + seedOffset3);
-    v += 0.2f * std::cos((x * 2.0f - z) * 0.12f + seedOffset4);
+    v += 0.4f * std::sin(z * 0.1f + seedOffset3);
+    v += 0.2f * std::cos(z * 0.12f + seedOffset4);
     break;
 
-  case 3: // Diagonal patterns
-    v += 1.0f * std::sin((x + z) * 0.07f + seedOffset1) * std::cos((x - z) * 0.05f + seedOffset2);
-    v += 0.5f * std::sin((x + z) * 0.15f + seedOffset3) * std::cos((x - z) * 0.12f + seedOffset4);
-    v += 0.25f * std::cos(x * 0.2f + seedOffset1) * std::sin(z * 0.18f + seedOffset2);
+  case 3: // Gentle waves
+    v += 1.0f * std::sin(z * 0.07f + seedOffset1);
+    v += 0.5f * std::sin(z * 0.15f + seedOffset3);
+    v += 0.25f * std::sin(z * 0.18f + seedOffset2);
     break;
 
-  case 4: // Circular formations
+  case 4: // Steep hills
   {
-    float r = std::sqrt(x * x + z * z);
-    v += 1.0f * std::sin(r * 0.05f + seedOffset1);
-    v += 0.5f * std::cos(r * 0.1f + seedOffset2);
-    v += 0.3f * std::sin(r * 0.2f + seedOffset3) * std::cos(std::atan2(z, x) * 3.0f + seedOffset4);
-    v += 0.2f * std::cos(r * 0.3f + seedOffset1);
+    v += 1.0f * std::sin(z * 0.05f + seedOffset1);
+    v += 0.5f * std::cos(z * 0.1f + seedOffset2);
+    v += 0.3f * std::sin(z * 0.2f + seedOffset3);
+    v += 0.2f * std::cos(z * 0.3f + seedOffset1);
     break;
   }
 
   case 5: // Complex fractal-like
-    v += 1.0f * std::sin(x * 0.04f + seedOffset1) * std::cos(z * 0.06f + seedOffset2);
-    v += 0.6f * std::sin(x * 0.11f + seedOffset3) * std::cos(z * 0.09f + seedOffset4);
-    v += 0.35f * std::sin(x * 0.21f + seedOffset1) * std::cos(z * 0.19f + seedOffset2);
-    v += 0.2f * std::sin(x * 0.37f + seedOffset3) * std::cos(z * 0.33f + seedOffset4);
-    v += 0.1f * std::sin(x * 0.52f + seedOffset1) * std::cos(z * 0.48f + seedOffset2);
+    v += 1.0f * std::sin(z * 0.04f + seedOffset1);
+    v += 0.6f * std::cos(z * 0.09f + seedOffset4);
+    v += 0.35f * std::sin(z * 0.19f + seedOffset2);
+    v += 0.2f * std::cos(z * 0.33f + seedOffset4);
+    v += 0.1f * std::sin(z * 0.48f + seedOffset2);
     break;
 
   case 6: // Turbulent mix
-    v += 1.1f * (std::sin(x * 0.06f + seedOffset1) + std::cos(z * 0.05f + seedOffset2)) * 0.5f;
-    v += 0.55f * (std::sin(x * 0.13f + seedOffset3) + std::sin(z * 0.11f + seedOffset4)) * 0.5f;
-    v += 0.3f * std::sin((x + z) * 0.18f + seedOffset1) * std::cos((x - z) * 0.16f + seedOffset2);
-    v += 0.15f * (std::cos(x * 0.28f + seedOffset3) + std::cos(z * 0.31f + seedOffset4)) * 0.5f;
+    v += 1.1f * (std::sin(z * 0.06f + seedOffset1) + std::cos(z * 0.05f + seedOffset2)) * 0.5f;
+    v += 0.55f * (std::sin(z * 0.13f + seedOffset3) + std::sin(z * 0.11f + seedOffset4)) * 0.5f;
+    v += 0.3f * std::sin(z * 0.18f + seedOffset1);
+    v += 0.15f * std::cos(z * 0.31f + seedOffset4);
     break;
 
   case 7: // Mountain peaks
-    v += 1.3f * std::sin(x * 0.03f + seedOffset1) * std::sin(z * 0.04f + seedOffset2);
-    v += 0.7f * std::cos(x * 0.09f + seedOffset3) * std::sin(z * 0.07f + seedOffset4);
-    v += 0.4f * std::sin(x * 0.17f + seedOffset1) * std::cos(z * 0.14f + seedOffset2);
-    v += 0.2f * (std::sin(x * 0.31f + seedOffset3) + std::cos(z * 0.27f + seedOffset4)) * 0.5f;
-    v += 0.1f * std::sin((x * z) * 0.002f + seedOffset1);
+    v += 1.3f * std::sin(z * 0.04f + seedOffset2);
+    v += 0.7f * std::sin(z * 0.07f + seedOffset4);
+    v += 0.4f * std::cos(z * 0.14f + seedOffset2);
+    v += 0.2f * std::cos(z * 0.27f + seedOffset4);
+    v += 0.1f * std::sin(z * 0.35f + seedOffset1);
     break;
   }
 
@@ -108,6 +140,9 @@ bool Terrain::init(int w, int d, float s, float hscale, unsigned int seed)
       heights[iz * width + ix] = h;
     }
   }
+
+  // Apply smoothing to make terrain transitions more gradual
+  smoothHeights(2);
 
   return generateMesh();
 }
@@ -306,6 +341,9 @@ void Terrain::update(float playerX, float playerZ)
         heights[iz * width + ix] = h;
       }
     }
+
+    // Apply smoothing to make terrain transitions more gradual
+    smoothHeights(2);
 
     // Rebuild the mesh with new heights
     generateMesh();

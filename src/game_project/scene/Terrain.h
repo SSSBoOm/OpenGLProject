@@ -32,6 +32,7 @@ public:
 
 private:
   bool generateMesh();
+  void smoothHeights(int iterations = 2);
 
   int width = 0;
   int depth = 0;
