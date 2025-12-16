@@ -171,15 +171,15 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
       // Calculate pitch (front-rear tilt) and roll (left-right tilt)
       float targetPitch = -std::atan2(avgFront - avgRear, WHEEL_BASE);
       float targetRoll = std::atan2(avgLeft - avgRight, TRACK_WIDTH);
-      
+
       // Get current orientation for smooth interpolation
       float currentPitch = glm::radians(car.pitch);
       float currentRoll = glm::radians(car.roll);
-      
+
       // Smooth interpolation factor
       const float TERRAIN_ALIGN_SPEED = 6.0f;
       float lerpFactor = glm::clamp(TERRAIN_ALIGN_SPEED * dt, 0.0f, 1.0f);
-      
+
       // Interpolate to target orientation
       float smoothPitch = currentPitch + (targetPitch - currentPitch) * lerpFactor;
       float smoothRoll = currentRoll + (targetRoll - currentRoll) * lerpFactor;
@@ -221,10 +221,10 @@ void Physics::updateCar(Car &car, float dt, const Controls &c, PhysicsWorld &wor
 void Physics::updateCamera(const Car &car, Camera &cam)
 {
   // Position camera to the right side of the car, slightly behind, and above
-  const float SIDE_DIST = 10.0f;  // how far to the right of the car
+  const float SIDE_DIST = 15.0f;  // how far to the right of the car
   const float BACK_OFFSET = 1.0f; // small offset behind the car
-  const float HEIGHT = 2.5f;      // camera height above car position
-  const float PITCH_DEG = -15.0f; // desired camera pitch in degrees
+  const float HEIGHT = 7.5f;      // camera height above car position
+  const float PITCH_DEG = -20.0f; // desired camera pitch in degrees
 
   float yawRad = glm::radians(car.yaw);
   glm::vec3 forwardVec = glm::vec3(cos(yawRad), 0.0f, sin(yawRad));
