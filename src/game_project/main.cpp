@@ -77,22 +77,25 @@ int main()
   Shader ourShader("1.model_loading.vs", "1.model_loading.fs");
   stbi_set_flip_vertically_on_load(false);
 
-  // Generate a random seed for terrain generation
-  std::random_device rd;
-  unsigned int terrainSeed = rd();
-  std::cout << "Generated terrain seed: " << terrainSeed << std::endl;
-
   // Initialize scene resources (ground, models, textures)
+  // Seed will be generated in the game loop
   Scene scene;
-  scene.init(SCR_WIDTH, SCR_HEIGHT, terrainSeed);
 
   // Initialize UI
   gameUI.init(SCR_WIDTH, SCR_HEIGHT);
 
   bool continueGame = true;
+  std::random_device rd;
 
   while (continueGame && !glfwWindowShouldClose(window))
   {
+    // Generate a new random seed for terrain generation each game
+    unsigned int terrainSeed = rd();
+    std::cout << "Generated terrain seed: " << terrainSeed << std::endl;
+
+    // Initialize/reinitialize scene with new seed
+    scene.init(SCR_WIDTH, SCR_HEIGHT, terrainSeed);
+
     int score = 0;
     float distanceTraveled = 0.0f; // Track total distance for difficulty
     glm::vec3 startPosition = glm::vec3(0.0f);
