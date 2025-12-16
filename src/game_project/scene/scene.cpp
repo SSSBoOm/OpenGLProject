@@ -97,6 +97,29 @@ bool Scene::init(int scrWidth, int scrHeight, unsigned int terrainSeed)
   }
   stbi_image_free(bgData);
 
+  // Sky texture for game scene
+  glGenTextures(1, &skyTexture);
+  glBindTexture(GL_TEXTURE_2D, skyTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  std::string skyPath = FileSystem::getPath("resources/images/light-blue-sky.jpg");
+  int skyW, skyH, skyC;
+  unsigned char *skyData = stbi_load(skyPath.c_str(), &skyW, &skyH, &skyC, 0);
+  if (skyData)
+  {
+    GLenum skyFormat = (skyC == 4) ? GL_RGBA : GL_RGB;
+    glTexImage2D(GL_TEXTURE_2D, 0, skyFormat, skyW, skyH, 0, skyFormat, GL_UNSIGNED_BYTE, skyData);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else
+  {
+    std::cerr << "Scene::init: Failed to load sky texture: " << skyPath << std::endl;
+  }
+  stbi_image_free(skyData);
+
   float bgQuadVertices[] = {
       // positions        // texcoords
       -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
@@ -410,6 +433,19 @@ bool Scene::showGameOver(GLFWwindow *window, Shader &shader, GameUI &gameUI, int
 
 void Scene::renderScene(Shader &shader, Camera &camera, Car &car, int selectedIndex, int scrWidth, int scrHeight)
 {
+  // Render sky background first
+  glDisable(GL_DEPTH_TEST);
+  shader.use();
+  shader.setMat4("model", glm::mat4(1.0f));
+  shader.setMat4("view", glm::mat4(1.0f));
+  shader.setMat4("projection", glm::mat4(1.0f));
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, skyTexture);
+  glBindVertexArray(bgVAO);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  glBindVertexArray(0);
+  glEnable(GL_DEPTH_TEST);
+
   shader.use();
   glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)scrWidth / (float)scrHeight, 0.1f, 100.0f);
   glm::mat4 view = camera.GetViewMatrix();
@@ -517,6 +553,8 @@ void Scene::cleanup()
     glDeleteBuffers(1, &bgEBO);
   if (backgroundTexture)
     glDeleteTextures(1, &backgroundTexture);
+  if (skyTexture)
+    glDeleteTextures(1, &skyTexture);
   if (platformVAO)
     glDeleteVertexArrays(1, &platformVAO);
   if (platformVBO)

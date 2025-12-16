@@ -22,13 +22,12 @@ struct ModelInfo
   std::string label;
 };
 
-class Scene
-{
+class Scene {
 public:
   Scene();
   ~Scene();
 
-  bool init(int scrWidth, int scrHeight, unsigned int terrainSeed = 0);
+  bool init(int scrWidth, int scrHeight, unsigned int terrainSeed = 12345);
 
   bool showMenu(GLFWwindow *window, Shader &shader, GameUI &gameUI, Controls &controls, int &selectedIndex, int scrWidth, int scrHeight);
 
@@ -37,7 +36,7 @@ public:
   void renderScene(Shader &shader, Camera &camera, Car &car, int selectedIndex, int scrWidth, int scrHeight);
 
   void cleanup();
-
+  
   void createCircularPlatform();
 
   // Access the scene's terrain for physics sampling
@@ -48,9 +47,10 @@ private:
   unsigned int groundVBO = 0;
   unsigned int groundEBO = 0;
   unsigned int groundTexture = 0;
-  unsigned int backgroundTexture = 0;
-  unsigned int bgVAO = 0;
-  unsigned int bgVBO = 0;
+  unsigned int backgroundTexture = 0; // For menu
+  unsigned int skyTexture = 0; // For game scene
+  unsigned int bgVAO = 0; 
+  unsigned int bgVBO = 0; 
   unsigned int bgEBO = 0;
   unsigned int platformVAO = 0;
   unsigned int platformVBO = 0;
