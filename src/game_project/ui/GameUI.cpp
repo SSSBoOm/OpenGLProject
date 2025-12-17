@@ -9,7 +9,7 @@
 
 GameUI::GameUI() 
     : screenWidth(800), screenHeight(600), quadVAO(0), quadVBO(0), uiShader(nullptr),
-      fuelIconTexture(0), turboIconTexture(0), coinIconTexture(0)
+      fuelIconTexture(0), turboIconTexture(0), coinIconTexture(0), speedometerTexture(0)
 {
 }
 
@@ -40,6 +40,7 @@ void GameUI::init(unsigned int width, unsigned int height)
     fuelIconTexture = loadIcon(FileSystem::getPath("resources/images/fuel.png"));
     turboIconTexture = loadIcon(FileSystem::getPath("resources/images/nitro.png"));
     coinIconTexture = loadIcon(FileSystem::getPath("resources/images/coin.png"));
+    speedometerTexture = loadIcon(FileSystem::getPath("resources/images/speedometer.png"));
 }
 
 void GameUI::initQuad()
@@ -206,7 +207,7 @@ float GameUI::getTextHeight(const std::string& text, float scale)
     return Characters['H'].Size.y * scale;
 }
 
-void GameUI::render(float fuelPercent, float turboPercent, int score)
+void GameUI::render(float fuelPercent, float turboPercent, int score, float speed, float maxSpeed)
 {
     // Clamp percentages to 0-100
     fuelPercent = glm::clamp(fuelPercent, 0.0f, 100.0f);
@@ -282,6 +283,72 @@ void GameUI::render(float fuelPercent, float turboPercent, int score)
     std::string scoreText = "Score: " + std::to_string(score);
     float scoreScale = 0.35f;
     renderText(scoreText, padding + iconSize + 10.0f, scoreY + barHeight / 2.0f - (Characters['H'].Bearing.y * scoreScale / 4.0f), scoreScale, glm::vec3(1.0f, 0.84f, 0.0f));
+    
+    // Speedometer display (bottom-right)
+    const float speedometerSize = 120.0f;
+    const float speedometerX = screenWidth - speedometerSize - padding;
+    const float speedometerY = screenHeight - speedometerSize - padding;
+    
+    // Render speedometer background
+    renderIcon(speedometerTexture, speedometerX, speedometerY, speedometerSize);
+    
+    // Calculate arrow rotation (0 degrees at left = 0 speed, 180 degrees at right = max speed)
+    float speedRatio = glm::clamp(speed / maxSpeed, 0.0f, 1.0f);
+    // Start at 180 degrees (pointing left) and rotate clockwise to 0 degrees (pointing right)
+    // Add 90 degrees offset because the quad is vertical by default
+    // Negate the speed ratio to rotate clockwise instead of counter-clockwise
+    float arrowAngle = 180.0f + (speedRatio * 180.0f) + 90.0f; // 270 degrees (left) to 450 degrees (right, same as 90 degrees)
+    
+    // Draw red arrow pointing from center-bottom
+    // Arrow pivot is at center-bottom of speedometer
+    float arrowCenterX = speedometerX + speedometerSize / 2.0f;
+    float arrowCenterY = speedometerY + speedometerSize * 0.75f; // Bottom quarter of speedometer
+    float arrowLength = speedometerSize * 0.35f;
+    
+    // Draw arrow shaft as a rotated quad
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    if (uiShader) {
+        float arrowWidth = 4.0f;
+        float arrowHeight = arrowLength;
+        
+        uiShader->use();
+        
+        // Create transformation matrix for rotation around pivot point
+        float angleRad = glm::radians(arrowAngle);
+        glm::mat4 transform = glm::mat4(1.0f);
+        transform = glm::translate(transform, glm::vec3(arrowCenterX, arrowCenterY, 0.0f));
+        transform = glm::rotate(transform, angleRad, glm::vec3(0.0f, 0.0f, 1.0f));
+        // Arrow extends upward from the pivot point (negative Y direction in texture space)
+        transform = glm::translate(transform, glm::vec3(0.0f, -arrowHeight / 2.0f, 0.0f));
+        
+        // Combine with projection
+        glm::mat4 arrowProjection = projection * transform;
+        
+        uiShader->setMat4("projection", arrowProjection);
+        uiShader->setVec2("position", glm::vec2(-arrowWidth / 2.0f, -arrowHeight / 2.0f));
+        uiShader->setVec2("size", glm::vec2(arrowWidth, arrowHeight));
+        uiShader->setVec3("color", glm::vec3(1.0f, 0.0f, 0.0f)); // Red arrow
+        
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        
+        // Reset projection
+        uiShader->setMat4("projection", projection);
+    }
+    
+    glDisable(GL_BLEND);
+    
+    // Display speed in km/h above speedometer
+    float speedKmh = speed * 3.6f; // Convert m/s to km/h (approximate)
+    std::string speedText = std::to_string(static_cast<int>(speedKmh)) + " km/h";
+    float speedTextScale = 0.5f;
+    float speedTextWidth = getTextWidth(speedText, speedTextScale);
+    float speedTextX = speedometerX + (speedometerSize - speedTextWidth) / 2.0f;
+    float speedTextY = speedometerY - 30.0f;
+    renderText(speedText, speedTextX, speedTextY, speedTextScale, glm::vec3(1.0f, 1.0f, 1.0f));
     
     // Re-enable depth test
     glEnable(GL_DEPTH_TEST);
@@ -572,5 +639,9 @@ void GameUI::cleanup()
     if (coinIconTexture != 0) {
         glDeleteTextures(1, &coinIconTexture);
         coinIconTexture = 0;
+    }
+    if (speedometerTexture != 0) {
+        glDeleteTextures(1, &speedometerTexture);
+        speedometerTexture = 0;
     }
 }

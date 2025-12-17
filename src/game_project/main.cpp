@@ -284,8 +284,9 @@ int main()
 
       collectibles.draw(ourShader, 0);
 
-      // Render UI (fuel bar, turbo bar, and score)
-      gameUI.render(car.getFuelPercent(), car.getTurboPercent(), score);
+      // Render UI (fuel bar, turbo bar, score, and speedometer)
+      // Max speed is 40.0f (with boost) from physics.cpp
+      gameUI.render(car.getFuelPercent(), car.getTurboPercent(), score, car.velocity, 40.0f);
 
       glfwSwapBuffers(window);
       glfwPollEvents();
