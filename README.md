@@ -30,21 +30,25 @@ A 3D hill climb racing game built with OpenGL and Bullet Physics, featuring real
 
 ## 📹 Demo Video
 
+https://github.com/user-attachments/assets/6bedd7a4-8f57-41c9-b5e1-ae455f927046
+
+
 Watch the gameplay in action! (30-second screen recording)
 
 ## 📸 Screenshots
 
 ### Car Selection Scene
 
-_Choose from multiple vehicles on an interactive rotating platform_
+<img width="1597" height="1198" alt="Screenshot 2568-12-18 at 22 20 16" src="https://github.com/user-attachments/assets/067e6a61-e556-472e-b902-8edb9608598f" />
 
 ### Gameplay
 
-_Navigate procedurally generated terrain while collecting items_
+<img width="802" height="599" alt="Screenshot 2568-12-18 at 22 20 24" src="https://github.com/user-attachments/assets/8e9792c1-828d-4f1d-bbc6-6ae3df5d8cfe" />
 
 ### Game Over Screen
 
-_View your final score and choose to continue or exit_
+<img width="794" height="597" alt="Screenshot 2568-12-18 at 22 21 15" src="https://github.com/user-attachments/assets/b0dd765c-9c5e-4420-8a0e-24529ed0825a" />
+
 
 ## 🎯 Controls
 
