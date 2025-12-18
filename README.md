@@ -1,66 +1,90 @@
-# OpenGL Car Physics Project
+# NitroClimb 🏎️
 
-A 3D car simulation project using OpenGL for rendering and Bullet Physics for realistic physics simulation.
+A 3D hill climb racing game built with OpenGL and Bullet Physics, featuring realistic physics simulation, collectible items, and progressive difficulty.
 
-## Prerequisites
+## 🎮 Game Overview
+
+**NitroClimb** is an exciting hill climb racing game where you drive various vehicles across procedurally generated terrain, collecting coins, fuel, and nitro boosts while managing your resources to travel as far as possible.
+
+### Game Features
+
+- **Three Interactive Scenes:**
+
+  - **Car Selection Scene**: Choose from multiple vehicles with an interactive circular platform display
+  - **Game Scene**: Race across infinite procedurally generated terrain
+  - **Game Over Scene**: View your final score and restart or exit
+
+- **Realistic Physics Simulation**: Powered by Bullet Physics engine for authentic vehicle dynamics
+
+- **Collectible Items:**
+
+  - 💰 **Coins**: Collect to increase your score
+  - ⛽ **Fuel**: Keep your vehicle running
+  - 🚀 **Nitro Boost**: Activate for temporary speed bursts
+
+- **Progressive Difficulty**: Terrain becomes more challenging as you progress
+
+- **Dynamic Camera System**: Smooth third-person camera that follows your vehicle
+
+- **Procedural Terrain Generation**: Infinite, randomly generated hills for endless gameplay
+
+## 📹 Demo Video
+
+Watch the gameplay in action! (30-second screen recording)
+
+## 📸 Screenshots
+
+### Car Selection Scene
+
+_Choose from multiple vehicles on an interactive rotating platform_
+
+### Gameplay
+
+_Navigate procedurally generated terrain while collecting items_
+
+### Game Over Screen
+
+_View your final score and choose to continue or exit_
+
+## 🎯 Controls
+
+- **WASD**: Accelerate, brake, and balance your vehicle
+- **Shift**: Activate nitro boost (when available)
+- **ESC**: Exit
+- **Mouse**: Navigate menus (car selection and game over screens)
+
+## 🛠️ Prerequisites
 
 - CMake (version 3.0 or higher)
 - C++17 compatible compiler
 - Homebrew (for macOS)
 
-## Dependencies
+## 📦 Dependencies
 
 This project requires the following libraries:
 
 - **OpenGL** - Graphics rendering
 - **GLFW3** - Window and input management
-- **GLM** - Mathematics library
+- **GLM** - Mathematics library for 3D transformations
 - **Assimp** - 3D model loading
-- **Freetype** - Font rendering
-- **Bullet Physics** - Physics simulation
+- **Freetype** - Font rendering for UI text
+- **Bullet Physics** - Physics simulation engine
 
-## Installation
+## 🚀 Installation
 
 ### macOS
 
-1. **Install Bullet Physics:**
+1. **Install dependencies:**
 
    ```bash
-   brew install bullet
+   brew install bullet glfw glm assimp freetype
    ```
 
-2. **Install other dependencies (if not already installed):**
+2. **Clone the repository:**
 
    ```bash
-   brew install glfw glm assimp freetype
-   ```
-
-3. **Build the project:**
-
-   ```bash
-   cd build
-   cmake ..
-   make
-   ```
-
-4. **Run the game:**
-   ```bash
-   cd ../bin/game_project
-   ./game_project
-   ```
-
-### Linux
-
-1. **Install Bullet Physics:**
-
-   ```bash
-   sudo apt-get install libbullet-dev
-   ```
-
-2. **Install other dependencies:**
-
-   ```bash
-   sudo apt-get install libglfw3-dev libglm-dev libassimp-dev libfreetype6-dev
+   git clone <repository-url>
+   cd OpenGLProject
    ```
 
 3. **Build the project:**
@@ -72,73 +96,66 @@ This project requires the following libraries:
    ```
 
 4. **Run the game:**
+
    ```bash
    cd ../bin/game_project
    ./game_project
    ```
 
-## Physics Integration
-
-The project uses Bullet Physics engine for realistic car physics simulation including:
-
-- Rigid body dynamics
-- Collision detection
-- Gravity simulation
-- Force and torque-based controls
-- Terrain interaction
-
-### Key Physics Features
-
-- **Mass-based simulation**: Car has proper mass (1000kg) and inertia
-- **Force application**: Throttle and brake apply forces rather than direct velocity changes
-- **Torque steering**: Steering applies rotational torque for realistic turning
-- **Terrain snapping**: Car maintains contact with terrain surface
-
-## Controls
-
-- **W/Up Arrow** - Throttle
-- **S/Down Arrow** - Brake/Reverse
-- **A/Left Arrow** - Steer Left
-- **D/Right Arrow** - Steer Right
-- **ESC** - Exit
-
-## Project Structure
+## 🎨 Project Structure
 
 ```
-.
-├── src/
-│   └── game_project/
-│       ├── core/          # Car and control classes
-│       ├── physics/       # Bullet physics integration
-│       ├── scene/         # Scene and terrain management
-│       └── input/         # Input handling
-├── includes/              # Third-party headers
-├── resources/             # Models, textures, etc.
-└── build/                # Build directory
+OpenGLProject/
+├── src/game_project/
+│   ├── core/           # Core game logic (car, collectibles, controls)
+│   ├── physics/        # Physics simulation (Bullet integration)
+│   ├── scene/          # Scene management and terrain generation
+│   ├── ui/             # User interface rendering
+│   ├── input/          # Input handling
+│   └── main.cpp        # Main game loop
+├── resources/
+│   ├── objects/        # 3D models
+│   ├── images/         # Textures and UI images
+│   └── fonts/          # Font files for text rendering
+└── bin/game_project/   # Compiled executable and shaders
 ```
 
-## Troubleshooting
+## 🎮 Gameplay
 
-### Header Conflicts
+1. **Car Selection**: Use left/right arrows or mouse to browse available vehicles, then press ENTER or click to start
+2. **Drive**: Navigate the procedurally generated terrain while managing fuel
+3. **Collect Items**:
+   - Coins increase your score
+   - Fuel keeps you going
+   - Nitro provides temporary speed boosts
+4. **Survive**: The game ends when you run out of fuel
+5. **Retry**: View your score and choose to continue or exit
 
-If you encounter compilation errors related to `NodeArray` or type conflicts between Assimp and Bullet:
+## 🏆 Credits
 
-- The project uses forward declarations to prevent header conflicts
-- Bullet headers are only included in `.cpp` files, not in headers
-- This keeps Assimp and Bullet headers separated
+### Development
 
-### CMake Can't Find Bullet
+- Built with OpenGL, GLFW, GLM, Assimp, Freetype, and Bullet Physics
 
-If CMake reports that it can't find Bullet:
+### 3D Models & Assets
 
-```bash
-# On macOS, check Bullet installation
-brew list bullet
+- **Sky Background**: [Blue Tropical Watercolor Background](https://www.freepik.com/free-photo/abstract-refreshing-blue-tropical-watercolor-background-illustration-high-resolution-free-image_26538625.htm) by Freepik
+- **Speedometer Icon**: [PNG Images](https://pngimg.com/image/28800)
+- **Nitro Object**: [NOS Bottle 3D Model](https://skfb.ly/oRWzz) by Sketchfab
+- **Nitro Icon**: [NOS Icon](https://www.freepik.com/icon/nos_2041104) by Freepik
+- **Coin Icon**: [Coin Icon](https://www.flaticon.com/free-icon/coin_217802) by Flaticon
+- **Fuel Icon**: [Fuel Icon](https://www.flaticon.com/free-icon/fuel_8664993) by Flaticon
+- **Coin Object**: [Gold Coin Hand Painted](https://www.cgtrader.com/free-3d-models/various/various-models/gold-coin-hand-painted) by CGTrader
+- **BMW E30 Model**: [BMW E30 3D Model](https://skfb.ly/o8EBR) by Sketchfab
 
-# If installed, you may need to help CMake find it
-export BULLET_ROOT=/opt/homebrew/opt/bullet
-```
+## 📄 License
 
-## License
+This project is for educational purposes. All third-party assets are credited to their respective owners.
 
-This project is for educational purposes.
+## 🤝 Contributing
+
+This is an educational project. Feel free to fork and experiment!
+
+---
+
+**Enjoy the climb! 🏔️🚗**
