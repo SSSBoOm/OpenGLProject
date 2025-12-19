@@ -52,7 +52,7 @@ Watch the gameplay in action! (30-second screen recording)
 
 ## 🎯 Controls
 
-- **WASD**: Accelerate, brake, and balance your vehicle
+- **WS**: Accelerate and brake
 - **Shift**: Activate nitro boost (when available)
 - **ESC**: Exit
 - **Mouse**: Navigate menus (car selection and game over screens)
