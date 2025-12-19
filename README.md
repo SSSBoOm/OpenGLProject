@@ -2,6 +2,8 @@
 
 A 3D hill climb racing game built with OpenGL and Bullet Physics, featuring realistic physics simulation, collectible items, and progressive difficulty.
 
+**itch.io**: https://sssboom.itch.io/nitro-climb-999
+
 ## 🎮 Game Overview
 
 **NitroClimb** is an exciting hill climb racing game where you drive various vehicles across procedurally generated terrain, collecting coins, fuel, and nitro boosts while managing your resources to travel as far as possible.
